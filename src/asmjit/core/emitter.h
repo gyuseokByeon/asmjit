@@ -352,6 +352,11 @@ public:
   //! Creates a new named label.
   virtual Label newNamedLabel(const char* name, size_t nameSize = SIZE_MAX, uint32_t type = Label::kTypeGlobal, uint32_t parentId = Globals::kInvalidId) = 0;
 
+  //! Creates a new external label.
+  inline Label newExternalLabel(const char* name, size_t nameSize = SIZE_MAX) {
+    return newNamedLabel(name, nameSize, Label::kTypeExternal);
+  }
+
   //! Returns `Label` by `name`.
   //!
   //! Returns invalid Label in case that the name is invalid or label was not found.

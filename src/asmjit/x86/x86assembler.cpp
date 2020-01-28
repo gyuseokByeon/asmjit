@@ -4559,7 +4559,7 @@ EmitRel:
 
     // Chain with label.
     size_t offset = size_t(writer.offsetFrom(_bufferData));
-    LabelLink* link = _code->newLabelLink(label, _section->id(), offset, relOffset);
+    LabelLink* link = _code->newLabelLink(label, _section->id(), offset, relOffset, relSize);
 
     if (ASMJIT_UNLIKELY(!link))
       goto OutOfMemory;
@@ -4567,11 +4567,8 @@ EmitRel:
     if (re)
       link->relocId = re->id();
 
-    // Emit label size as dummy data.
-    if (relSize == 1)
-      writer.emit8(0x01);
-    else // if (relSize == 4)
-      writer.emit32uLE(0x04040404);
+    // Emit dummy zeros, must be patched later when the reference becomes known.
+    writer.emitZeros(relSize);
   }
   writer.emitImmediate(uint64_t(immValue), immSize);
 

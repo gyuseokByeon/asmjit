@@ -515,8 +515,10 @@ public:
     kTypeLocal = 1,
     //! Global label (never has parentId).
     kTypeGlobal = 2,
+    //! External label (references an external symbol).
+    kTypeExternal = 3,
     //! Number of label types.
-    kTypeCount = 3
+    kTypeCount = 4
   };
 
   // TODO: Find a better place, find a better name.

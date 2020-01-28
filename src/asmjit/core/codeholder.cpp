@@ -522,7 +522,7 @@ static bool CodeHolder_writeDisplacement(void* dst, int64_t displacement, uint32
   return false;
 }
 
-LabelLink* CodeHolder::newLabelLink(LabelEntry* le, uint32_t sectionId, size_t offset, intptr_t rel) noexcept {
+LabelLink* CodeHolder::newLabelLink(LabelEntry* le, uint32_t sectionId, size_t offset, intptr_t rel, size_t relSize) noexcept {
   LabelLink* link = _allocator.allocT<LabelLink>();
   if (ASMJIT_UNLIKELY(!link)) return nullptr;
 
@@ -533,6 +533,8 @@ LabelLink* CodeHolder::newLabelLink(LabelEntry* le, uint32_t sectionId, size_t o
   link->relocId = Globals::kInvalidId;
   link->offset = offset;
   link->rel = rel;
+  link->relSize = uint8_t(relSize);
+  memset(link->reserved, 0, sizeof(link->reserved));
 
   _unresolvedLinkCount++;
   return link;
@@ -664,7 +666,7 @@ ASMJIT_API Error CodeHolder::resolveUnresolvedLinks() noexcept {
             ASMJIT_ASSERT(size_t(linkOffset) < buf.size());
 
             // Size of the value we are going to patch. Only BYTE/DWORD is allowed.
-            uint32_t displacementSize = buf._data[linkOffset];
+            uint32_t displacementSize = link->relSize;
             ASMJIT_ASSERT(buf.size() - size_t(linkOffset) >= displacementSize);
 
             // Overwrite a real displacement in the CodeBuffer.
@@ -731,7 +733,7 @@ ASMJIT_API Error CodeHolder::bindLabel(const Label& label, uint32_t toSectionId,
       int64_t displacement = int64_t(toOffset - uint64_t(linkOffset) + uint64_t(int64_t(link->rel)));
 
       // Size of the value we are going to patch. Only BYTE/DWORD is allowed.
-      uint32_t displacementSize = buf._data[linkOffset];
+      uint32_t displacementSize = link->relSize;
       ASMJIT_ASSERT(buf.size() - size_t(linkOffset) >= displacementSize);
 
       // Overwrite a real displacement in the CodeBuffer.
