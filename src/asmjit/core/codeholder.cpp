@@ -581,9 +581,9 @@ Error CodeHolder::newNamedLabelEntry(LabelEntry** entryOut, const char* name, si
       break;
 
     case Label::kTypeGlobal:
+    case Label::kTypeExternal:
       if (ASMJIT_UNLIKELY(parentId != Globals::kInvalidId))
         return DebugUtils::errored(kErrorNonLocalLabelCantHaveParent);
-
       break;
 
     default:

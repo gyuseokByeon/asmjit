@@ -119,7 +119,8 @@ Label BaseAssembler::newLabel() {
     Error err = _code->newLabelEntry(&le);
     if (ASMJIT_UNLIKELY(err))
       reportError(err);
-    labelId = le->id();
+    else
+      labelId = le->id();
   }
   return Label(labelId);
 }
@@ -131,7 +132,8 @@ Label BaseAssembler::newNamedLabel(const char* name, size_t nameSize, uint32_t t
     Error err = _code->newNamedLabelEntry(&le, name, nameSize, type, parentId);
     if (ASMJIT_UNLIKELY(err))
       reportError(err);
-    labelId = le->id();
+    else
+      labelId = le->id();
   }
   return Label(labelId);
 }
