@@ -31,7 +31,7 @@
 
 ASMJIT_BEGIN_NAMESPACE
 
-//! \addtogroup asmjit_support
+//! \addtogroup asmjit_arch_and_cpu
 //! \{
 
 // ============================================================================

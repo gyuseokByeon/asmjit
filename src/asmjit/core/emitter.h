@@ -25,9 +25,10 @@
 #define ASMJIT_CORE_EMITTER_H_INCLUDED
 
 #include "../core/arch.h"
+#include "../core/codeholder.h"
 #include "../core/inst.h"
 #include "../core/operand.h"
-#include "../core/codeholder.h"
+#include "../core/type.h"
 
 ASMJIT_BEGIN_NAMESPACE
 
@@ -259,7 +260,7 @@ public:
   //! Returns the emitter options.
   inline uint32_t emitterOptions() const noexcept { return _emitterOptions; }
 
-  // TODO: Deprecate and remove, CodeHolder::addEmitterOptions() is the way.
+  // TODO [DEPRECATED]: Use CodeHolder::addEmitterOptions() instead.
   inline void addEmitterOptions(uint32_t options) noexcept {
     _emitterOptions |= options;
     onUpdateGlobalInstOptions();
@@ -377,100 +378,49 @@ public:
 
   // NOTE: These `emit()` helpers are designed to address a code-bloat generated
   // by C++ compilers to call a function having many arguments. Each parameter to
-  // `_emit()` requires some code to pass it, which means that if we default to 4
-  // operand parameters in `_emit()` and instId the C++ compiler would have to
-  // generate a virtual function call having 5 parameters, which is quite a lot.
-  // Since by default asm instructions have 2 to 3 operands it's better to
-  // introduce helpers that pass those and fill out the remaining operands.
+  // `_emit()` requires some code to pass it, which means that if we default to
+  // 5 arguments in `_emit()` and instId the C++ compiler would have to generate
+  // a virtual function call having 5 parameters and additional `this` argument,
+  // which is quite a lot. Since by default most instructions have 2 to 3 operands
+  // it's better to introduce helpers that pass from 0 to 6 operands that help to
+  // reduce the size of emit(...) function call.
 
-  #define OP const Operand_&
-  #define NONE Globals::none
+  //! Emits an instruction (internal).
+  ASMJIT_API Error _emitI(uint32_t instId);
+  //! \overload
+  ASMJIT_API Error _emitI(uint32_t instId, const Operand_& o0);
+  //! \overload
+  ASMJIT_API Error _emitI(uint32_t instId, const Operand_& o0, const Operand_& o1);
+  //! \overload
+  ASMJIT_API Error _emitI(uint32_t instId, const Operand_& o0, const Operand_& o1, const Operand_& o2);
+  //! \overload
+  ASMJIT_API Error _emitI(uint32_t instId, const Operand_& o0, const Operand_& o1, const Operand_& o2, const Operand_& o3);
+  //! \overload
+  ASMJIT_API Error _emitI(uint32_t instId, const Operand_& o0, const Operand_& o1, const Operand_& o2, const Operand_& o3, const Operand_& o4);
+  //! \overload
+  ASMJIT_API Error _emitI(uint32_t instId, const Operand_& o0, const Operand_& o1, const Operand_& o2, const Operand_& o3, const Operand_& o4, const Operand_& o5);
 
-  //! Emits an instruction.
-  ASMJIT_NOINLINE Error emit(uint32_t instId) { return _emit(instId, NONE, NONE, NONE, NONE); }
-  //! \overload
-  ASMJIT_NOINLINE Error emit(uint32_t instId, OP o0) { return _emit(instId, o0, NONE, NONE, NONE); }
-  //! \overload
-  ASMJIT_NOINLINE Error emit(uint32_t instId, OP o0, OP o1) { return _emit(instId, o0, o1, NONE, NONE); }
-  //! \overload
-  ASMJIT_NOINLINE Error emit(uint32_t instId, OP o0, OP o1, OP o2) { return _emit(instId, o0, o1, o2, NONE); }
-  //! \overload
-  inline Error emit(uint32_t instId, OP o0, OP o1, OP o2, OP o3) { return _emit(instId, o0, o1, o2, o3); }
-  //! \overload
-  inline Error emit(uint32_t instId, OP o0, OP o1, OP o2, OP o3, OP o4) { return _emit(instId, o0, o1, o2, o3, o4, NONE); }
-  //! \overload
-  inline Error emit(uint32_t instId, OP o0, OP o1, OP o2, OP o3, OP o4, OP o5) { return _emit(instId, o0, o1, o2, o3, o4, o5); }
+  //! Emits an instruction `instId` with the given `operands`.
+  template<typename... Args>
+  ASMJIT_INLINE Error emit(uint32_t instId, Args&&... operands) {
+    return _emitI(instId, Support::ForwardOp<Args>::forward(operands)...);
+  }
 
-  //! \overload
-  ASMJIT_NOINLINE Error emit(uint32_t instId, int o0) { return _emit(instId, Imm(o0), NONE, NONE, NONE); }
-  //! \overload
-  ASMJIT_NOINLINE Error emit(uint32_t instId, OP o0, int o1) { return _emit(instId, o0, Imm(o1), NONE, NONE); }
-  //! \overload
-  ASMJIT_NOINLINE Error emit(uint32_t instId, OP o0, OP o1, int o2) { return _emit(instId, o0, o1, Imm(o2), NONE); }
-  //! \overload
-  ASMJIT_NOINLINE Error emit(uint32_t instId, OP o0, OP o1, OP o2, int o3) { return _emit(instId, o0, o1, o2, Imm(o3)); }
-  //! \overload
-  ASMJIT_NOINLINE Error emit(uint32_t instId, OP o0, OP o1, OP o2, OP o3, int o4) { return _emit(instId, o0, o1, o2, o3, Imm(o4), NONE); }
-  //! \overload
-  ASMJIT_NOINLINE Error emit(uint32_t instId, OP o0, OP o1, OP o2, OP o3, OP o4, int o5) { return _emit(instId, o0, o1, o2, o3, o4, Imm(o5)); }
+  inline Error emitOpArray(uint32_t instId, const Operand_* operands, size_t opCount) {
+    return _emitOpArray(instId, operands, opCount);
+  }
 
-  //! \overload
-  ASMJIT_NOINLINE Error emit(uint32_t instId, int64_t o0) { return _emit(instId, Imm(o0), NONE, NONE, NONE); }
-  //! \overload
-  ASMJIT_NOINLINE Error emit(uint32_t instId, OP o0, int64_t o1) { return _emit(instId, o0, Imm(o1), NONE, NONE); }
-  //! \overload
-  ASMJIT_NOINLINE Error emit(uint32_t instId, OP o0, OP o1, int64_t o2) { return _emit(instId, o0, o1, Imm(o2), NONE); }
-  //! \overload
-  ASMJIT_NOINLINE Error emit(uint32_t instId, OP o0, OP o1, OP o2, int64_t o3) { return _emit(instId, o0, o1, o2, Imm(o3)); }
-  //! \overload
-  ASMJIT_NOINLINE Error emit(uint32_t instId, OP o0, OP o1, OP o2, OP o3, int64_t o4) { return _emit(instId, o0, o1, o2, o3, Imm(o4), NONE); }
-  //! \overload
-  ASMJIT_NOINLINE Error emit(uint32_t instId, OP o0, OP o1, OP o2, OP o3, OP o4, int64_t o5) { return _emit(instId, o0, o1, o2, o3, o4, Imm(o5)); }
-
-  //! \overload
-  inline Error emit(uint32_t instId, unsigned int o0) { return emit(instId, int64_t(o0)); }
-  //! \overload
-  inline Error emit(uint32_t instId, OP o0, unsigned int o1) { return emit(instId, o0, int64_t(o1)); }
-  //! \overload
-  inline Error emit(uint32_t instId, OP o0, OP o1, unsigned int o2) { return emit(instId, o0, o1, int64_t(o2)); }
-  //! \overload
-  inline Error emit(uint32_t instId, OP o0, OP o1, OP o2, unsigned int o3) { return emit(instId, o0, o1, o2, int64_t(o3)); }
-  //! \overload
-  inline Error emit(uint32_t instId, OP o0, OP o1, OP o2, OP o3, unsigned int o4) { return emit(instId, o0, o1, o2, o3, int64_t(o4)); }
-  //! \overload
-  inline Error emit(uint32_t instId, OP o0, OP o1, OP o2, OP o3, OP o4, unsigned int o5) { return emit(instId, o0, o1, o2, o3, o4, int64_t(o5)); }
-
-  //! \overload
-  inline Error emit(uint32_t instId, uint64_t o0) { return emit(instId, int64_t(o0)); }
-  //! \overload
-  inline Error emit(uint32_t instId, OP o0, uint64_t o1) { return emit(instId, o0, int64_t(o1)); }
-  //! \overload
-  inline Error emit(uint32_t instId, OP o0, OP o1, uint64_t o2) { return emit(instId, o0, o1, int64_t(o2)); }
-  //! \overload
-  inline Error emit(uint32_t instId, OP o0, OP o1, OP o2, uint64_t o3) { return emit(instId, o0, o1, o2, int64_t(o3)); }
-  //! \overload
-  inline Error emit(uint32_t instId, OP o0, OP o1, OP o2, OP o3, uint64_t o4) { return emit(instId, o0, o1, o2, o3, int64_t(o4)); }
-  //! \overload
-  inline Error emit(uint32_t instId, OP o0, OP o1, OP o2, OP o3, OP o4, uint64_t o5) { return emit(instId, o0, o1, o2, o3, o4, int64_t(o5)); }
-
-  #undef NONE
-  #undef OP
-
-  inline Error emitOpArray(uint32_t instId, const Operand_* operands, size_t count) { return _emitOpArray(instId, operands, count); }
-
-  inline Error emitInst(const BaseInst& inst, const Operand_* operands, size_t count) {
+  inline Error emitInst(const BaseInst& inst, const Operand_* operands, size_t opCount) {
     setInstOptions(inst.options());
     setExtraReg(inst.extraReg());
-    return _emitOpArray(inst.id(), operands, count);
+    return _emitOpArray(inst.id(), operands, opCount);
   }
 
   //! \cond INTERNAL
-  //! Emits instruction having max 4 operands.
-  virtual Error _emit(uint32_t instId, const Operand_& o0, const Operand_& o1, const Operand_& o2, const Operand_& o3) = 0;
-  //! Emits instruction having max 6 operands.
-  virtual Error _emit(uint32_t instId, const Operand_& o0, const Operand_& o1, const Operand_& o2, const Operand_& o3, const Operand_& o4, const Operand_& o5) = 0;
+  //! Emits an instruction - all 6 operands must be defined.
+  virtual Error _emit(uint32_t instId, const Operand_& o0, const Operand_& o1, const Operand_& o2, const Operand_* oExt) = 0;
   //! Emits instruction having operands stored in array.
-  virtual Error _emitOpArray(uint32_t instId, const Operand_* operands, size_t count);
+  virtual Error _emitOpArray(uint32_t instId, const Operand_* operands, size_t opCount);
   //! \endcond
 
   //! \}
@@ -478,19 +428,19 @@ public:
   //! \name Emit Utilities
   //! \{
 
-  ASMJIT_API Error emitProlog(const FuncFrame& layout);
-  ASMJIT_API Error emitEpilog(const FuncFrame& layout);
-  ASMJIT_API Error emitArgsAssignment(const FuncFrame& layout, const FuncArgsAssignment& args);
+  ASMJIT_API Error emitProlog(const FuncFrame& frame);
+  ASMJIT_API Error emitEpilog(const FuncFrame& frame);
+  ASMJIT_API Error emitArgsAssignment(const FuncFrame& frame, const FuncArgsAssignment& args);
 
   //! \}
 
   //! \name Align
   //! \{
 
-  //! Aligns the current CodeBuffer to the `alignment` specified.
+  //! Aligns the current CodeBuffer position to the `alignment` specified.
   //!
   //! The sequence that is used to fill the gap between the aligned location
-  //! and the current location depends on the align `mode`, see `AlignMode`.
+  //! and the current location depends on the align `mode`, see \ref AlignMode.
   virtual Error align(uint32_t alignMode, uint32_t alignment) = 0;
 
   //! \}
@@ -498,8 +448,44 @@ public:
   //! \name Embed
   //! \{
 
-  //! Embeds raw data into the CodeBuffer.
-  virtual Error embed(const void* data, uint32_t dataSize) = 0;
+  //! Embeds raw data into the \ref CodeBuffer.
+  virtual Error embed(const void* data, size_t dataSize) = 0;
+
+  //! Embeds a typed data array.
+  //!
+  //! This is the most flexible function for embedding data as it allows to:
+  //!   - Assign a `typeId` to the data, so the emitter knows the type of
+  //!     items stored in `data`. Binary data should use \ref Type::kIdU8.
+  //!   - Repeat the given data `repeatCount` times, so the data can be used
+  //!     as a fill pattern for example, or as a pattern used by SIMD instructions.
+  virtual Error embedDataArray(uint32_t typeId, const void* data, size_t itemCount, size_t repeatCount = 1) = 0;
+
+  //! Embeds int8_t `value` repeated by `repeatCount`.
+  inline Error embedInt8(int8_t value, size_t repeatCount = 1) { return embedDataArray(Type::kIdI8, &value, 1, repeatCount); }
+  //! Embeds uint8_t `value` repeated by `repeatCount`.
+  inline Error embedUInt8(uint8_t value, size_t repeatCount = 1) { return embedDataArray(Type::kIdU8, &value, 1, repeatCount); }
+  //! Embeds int16_t `value` repeated by `repeatCount`.
+  inline Error embedInt16(int16_t value, size_t repeatCount = 1) { return embedDataArray(Type::kIdI16, &value, 1, repeatCount); }
+  //! Embeds uint16_t `value` repeated by `repeatCount`.
+  inline Error embedUInt16(uint16_t value, size_t repeatCount = 1) { return embedDataArray(Type::kIdU16, &value, 1, repeatCount); }
+  //! Embeds int32_t `value` repeated by `repeatCount`.
+  inline Error embedInt32(int32_t value, size_t repeatCount = 1) { return embedDataArray(Type::kIdI32, &value, 1, repeatCount); }
+  //! Embeds uint32_t `value` repeated by `repeatCount`.
+  inline Error embedUInt32(uint32_t value, size_t repeatCount = 1) { return embedDataArray(Type::kIdU32, &value, 1, repeatCount); }
+  //! Embeds int64_t `value` repeated by `repeatCount`.
+  inline Error embedInt64(int64_t value, size_t repeatCount = 1) { return embedDataArray(Type::kIdI64, &value, 1, repeatCount); }
+  //! Embeds uint64_t `value` repeated by `repeatCount`.
+  inline Error embedUInt64(uint64_t value, size_t repeatCount = 1) { return embedDataArray(Type::kIdU64, &value, 1, repeatCount); }
+  //! Embeds a floating point `value` repeated by `repeatCount`.
+  inline Error embedFloat(float value, size_t repeatCount = 1) { return embedDataArray(Type::kIdF32, &value, 1, repeatCount); }
+  //! Embeds a floating point `value` repeated by `repeatCount`.
+  inline Error embedDouble(double value, size_t repeatCount = 1) { return embedDataArray(Type::IdOfT<double>::kTypeId, &value, 1, repeatCount); }
+
+  //! Embeds a constant pool at the current offset by performing the following:
+  //!   1. Aligns by using kAlignData to the minimum `pool` alignment.
+  //!   2. Binds the ConstPool label so it's bound to an aligned location.
+  //!   3. Emits ConstPool content.
+  virtual Error embedConstPool(const Label& label, const ConstPool& pool) = 0;
 
   //! Embeds an absolute label address as data (4 or 8 bytes).
   virtual Error embedLabel(const Label& label) = 0;
@@ -507,13 +493,7 @@ public:
   //! Embeds a delta (distance) between the `label` and `base` calculating it
   //! as `label - base`. This function was designed to make it easier to embed
   //! lookup tables where each index is a relative distance of two labels.
-  virtual Error embedLabelDelta(const Label& label, const Label& base, uint32_t dataSize) = 0;
-
-  //! Embeds a constant pool at the current offset by performing the following:
-  //!   1. Aligns by using kAlignData to the minimum `pool` alignment.
-  //!   2. Binds the ConstPool label so it's bound to an aligned location.
-  //!   3. Emits ConstPool content.
-  virtual Error embedConstPool(const Label& label, const ConstPool& pool) = 0;
+  virtual Error embedLabelDelta(const Label& label, const Label& base, size_t dataSize) = 0;
 
   //! \}
 

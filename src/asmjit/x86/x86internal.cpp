@@ -24,7 +24,7 @@
 #include "../core/api-build_p.h"
 #ifdef ASMJIT_BUILD_X86
 
-#include "../core/logging.h"
+#include "../core/formatter.h"
 #include "../core/string.h"
 #include "../core/support.h"
 #include "../core/type.h"
@@ -632,15 +632,18 @@ ASMJIT_FAVOR_SIZE Error X86FuncArgsContext::markScratchRegs(FuncFrame& frame) no
       uint32_t regs = workRegs & ~(wd.usedRegs() | wd._dstShuf);
 
       // If that didn't work out pick some register which is not in 'used'.
-      if (!regs) regs = workRegs & ~wd.usedRegs();
+      if (!regs)
+        regs = workRegs & ~wd.usedRegs();
 
       // If that didn't work out pick any other register that is allocable.
       // This last resort case will, however, result in marking one more
       // register dirty.
-      if (!regs) regs = wd.archRegs() & ~workRegs;
+      if (!regs)
+        regs = wd.archRegs() & ~workRegs;
 
       // If that didn't work out we will have to use XORs instead of MOVs.
-      if (!regs) continue;
+      if (!regs)
+        continue;
 
       uint32_t regMask = Support::blsi(regs);
       wd._workRegs |= regMask;
@@ -943,7 +946,8 @@ ASMJIT_FAVOR_SIZE Error X86Internal::emitArgMove(Emitter* emitter,
   const Operand_& src_, uint32_t srcTypeId, bool avxEnabled, const char* comment) {
 
   // Deduce optional `dstTypeId`, which may be `Type::kIdVoid` in some cases.
-  if (!dstTypeId) dstTypeId = opData.archRegs.regTypeToTypeId[dst_.type()];
+  if (!dstTypeId)
+    dstTypeId = opData.archRegs.regTypeToTypeId[dst_.type()];
 
   // Invalid or abstract TypeIds are not allowed.
   ASMJIT_ASSERT(Type::isValid(dstTypeId) && !Type::isAbstract(dstTypeId));
@@ -969,11 +973,13 @@ ASMJIT_FAVOR_SIZE Error X86Internal::emitArgMove(Emitter* emitter,
             typeOp == ((Type::kIdI32 << 8) | Type::kIdI8 ) ||
             typeOp == ((Type::kIdI32 << 8) | Type::kIdI16) ||
             typeOp == ((Type::kIdI64 << 8) | Type::kIdI8 ) ||
-            typeOp == ((Type::kIdI64 << 8) | Type::kIdI16)) break;
+            typeOp == ((Type::kIdI64 << 8) | Type::kIdI16))
+          break;
 
         // Sign extend by using 'movsxd'.
         instId = Inst::kIdMovsxd;
-        if (typeOp == ((Type::kIdI64 << 8) | Type::kIdI32)) break;
+        if (typeOp == ((Type::kIdI64 << 8) | Type::kIdI32))
+          break;
       }
 
       if (Type::isInt(srcTypeId) || src_.isMem()) {
@@ -991,7 +997,8 @@ ASMJIT_FAVOR_SIZE Error X86Internal::emitArgMove(Emitter* emitter,
 
           dst.setSignature(srcSize == 4 ? Reg::signatureOfT<Reg::kTypeGpd>()
                                         : Reg::signatureOfT<Reg::kTypeGpq>());
-          if (src.isReg()) src.setSignature(dst.signature());
+          if (src.isReg())
+            src.setSignature(dst.signature());
         }
         break;
       }
@@ -1003,7 +1010,8 @@ ASMJIT_FAVOR_SIZE Error X86Internal::emitArgMove(Emitter* emitter,
       if (Type::isMmx(srcTypeId)) {
         // 64-bit move.
         instId = Inst::kIdMovq;
-        if (srcSize == 8) break;
+        if (srcSize == 8)
+          break;
 
         // 32-bit move.
         instId = Inst::kIdMovd;
@@ -1021,7 +1029,8 @@ ASMJIT_FAVOR_SIZE Error X86Internal::emitArgMove(Emitter* emitter,
       if (Type::isVec(srcTypeId)) {
         // 64-bit move.
         instId = avxEnabled ? Inst::kIdVmovq : Inst::kIdMovq;
-        if (srcSize == 8) break;
+        if (srcSize == 8)
+          break;
 
         // 32-bit move.
         instId = avxEnabled ? Inst::kIdVmovd : Inst::kIdMovd;
@@ -1036,19 +1045,23 @@ ASMJIT_FAVOR_SIZE Error X86Internal::emitArgMove(Emitter* emitter,
 
       if (Type::isInt(srcTypeId) || src.isMem()) {
         // 64-bit move.
-        if (srcSize == 8) break;
+        if (srcSize == 8)
+          break;
 
         // 32-bit move.
         instId = Inst::kIdMovd;
-        if (src.isReg()) src.setSignature(Reg::signatureOfT<Reg::kTypeGpd>());
+        if (src.isReg())
+          src.setSignature(Reg::signatureOfT<Reg::kTypeGpd>());
         break;
       }
 
-      if (Type::isMmx(srcTypeId)) break;
+      if (Type::isMmx(srcTypeId))
+        break;
 
       // This will hurt if `avxEnabled`.
       instId = Inst::kIdMovdq2q;
-      if (Type::isVec(srcTypeId)) break;
+      if (Type::isVec(srcTypeId))
+break;
     }
 
     if (Type::isMask(dstTypeId)) {
@@ -1056,7 +1069,8 @@ ASMJIT_FAVOR_SIZE Error X86Internal::emitArgMove(Emitter* emitter,
 
       if (Type::isInt(srcTypeId) || Type::isMask(srcTypeId) || src.isMem()) {
         instId = x86KmovFromSize(srcSize);
-        if (Reg::isGp(src) && srcSize <= 4) src.setSignature(Reg::signatureOfT<Reg::kTypeGpd>());
+        if (Reg::isGp(src) && srcSize <= 4)
+          src.setSignature(Reg::signatureOfT<Reg::kTypeGpd>());
         break;
       }
     }
@@ -1112,7 +1126,8 @@ ASMJIT_FAVOR_SIZE Error X86Internal::emitArgMove(Emitter* emitter,
         // 32-bit move.
         if (srcSize <= 4) {
           instId = avxEnabled ? Inst::kIdVmovd : Inst::kIdMovd;
-          if (src.isReg()) src.setSignature(Reg::signatureOfT<Reg::kTypeGpd>());
+          if (src.isReg())
+            src.setSignature(Reg::signatureOfT<Reg::kTypeGpd>());
           break;
         }
 
@@ -1128,7 +1143,8 @@ ASMJIT_FAVOR_SIZE Error X86Internal::emitArgMove(Emitter* emitter,
         uint32_t sign = Reg::signatureOfVecBySize(srcSize);
 
         dst.setSignature(sign);
-        if (src.isReg()) src.setSignature(sign);
+        if (src.isReg())
+          src.setSignature(sign);
         break;
       }
     }
@@ -1339,16 +1355,16 @@ ASMJIT_FAVOR_SIZE Error X86Internal::emitEpilog(Emitter* emitter, const FuncFram
 
 #ifdef ASMJIT_DUMP_ARGS_ASSIGNMENT
 static void dumpFuncValue(String& sb, uint32_t archId, const FuncValue& value) noexcept {
-  Logging::formatTypeId(sb, value.typeId());
-  sb.appendChar('@');
+  Formatter::formatTypeId(sb, value.typeId());
+  sb.append('@');
   if (value.isReg()) {
-    Logging::formatRegister(sb, 0, nullptr, archId, value.regType(), value.regId());
+    Formatter::formatRegister(sb, 0, nullptr, archId, value.regType(), value.regId());
   }
   else if (value.isStack()) {
     sb.appendFormat("[%d]", value.stackOffset());
   }
   else {
-    sb.appendString("<none>");
+    sb.append("<none>");
   }
 }
 
@@ -1365,13 +1381,13 @@ static void dumpAssignment(String& sb, const X86FuncArgsContext& ctx) noexcept {
 
     sb.appendFormat("Var%u: ", i);
     dumpFuncValue(sb, archId, dst);
-    sb.appendString(" <- ");
+    sb.append(" <- ");
     dumpFuncValue(sb, archId, cur);
 
     if (var.isDone())
-      sb.appendString(" {Done}");
+      sb.append(" {Done}");
 
-    sb.appendChar('\n');
+    sb.append('\n');
   }
 }
 #endif
@@ -1427,7 +1443,8 @@ ASMJIT_FAVOR_SIZE Error X86Internal::emitArgsAssignment(Emitter* emitter, const 
 
     for (uint32_t varId = 0; varId < varCount; varId++) {
       Var& var = ctx._vars[varId];
-      if (!var.out.isStack()) continue;
+      if (!var.out.isStack())
+        continue;
 
       ASMJIT_ASSERT(var.cur.isReg() || var.cur.isStack());
       Reg reg;
@@ -1481,7 +1498,8 @@ ASMJIT_FAVOR_SIZE Error X86Internal::emitArgsAssignment(Emitter* emitter, const 
   for (;;) {
     for (uint32_t varId = 0; varId < varCount; varId++) {
       Var& var = ctx._vars[varId];
-      if (var.isDone() || !var.cur.isReg()) continue;
+      if (var.isDone() || !var.cur.isReg())
+        continue;
 
       uint32_t curType = var.cur.regType();
       uint32_t outType = var.out.regType();
@@ -1493,17 +1511,8 @@ ASMJIT_FAVOR_SIZE Error X86Internal::emitArgsAssignment(Emitter* emitter, const 
       uint32_t outId = var.out.regId();
 
       if (curGroup != outGroup) {
+        // TODO: Conversion is not supported.
         ASMJIT_ASSERT(false);
-
-        // Requires a conversion between two register groups.
-        if (workData[outGroup]._numSwaps) {
-          // TODO: Postponed
-          workFlags |= kWorkPending;
-        }
-        else {
-          // TODO:
-          workFlags |= kWorkPending;
-        }
       }
       else {
         WorkData& wd = workData[outGroup];

@@ -110,12 +110,12 @@ public:
 
   Error onInst(InstNode* inst, uint32_t& controlType, RAInstBuilder& ib) noexcept;
 
-  Error onBeforeCall(FuncCallNode* call) noexcept;
-  Error onCall(FuncCallNode* call, RAInstBuilder& ib) noexcept;
+  Error onBeforeInvoke(InvokeNode* invokeNode) noexcept;
+  Error onInvoke(InvokeNode* invokeNode, RAInstBuilder& ib) noexcept;
 
-  Error moveImmToRegArg(FuncCallNode* call, const FuncValue& arg, const Imm& imm_, BaseReg* out) noexcept;
-  Error moveImmToStackArg(FuncCallNode* call, const FuncValue& arg, const Imm& imm_) noexcept;
-  Error moveRegToStackArg(FuncCallNode* call, const FuncValue& arg, const BaseReg& reg) noexcept;
+  Error moveImmToRegArg(InvokeNode* invokeNode, const FuncValue& arg, const Imm& imm_, BaseReg* out) noexcept;
+  Error moveImmToStackArg(InvokeNode* invokeNode, const FuncValue& arg, const Imm& imm_) noexcept;
+  Error moveRegToStackArg(InvokeNode* invokeNode, const FuncValue& arg, const BaseReg& reg) noexcept;
 
   Error onBeforeRet(FuncRetNode* funcRet) noexcept;
   Error onRet(FuncRetNode* funcRet, RAInstBuilder& ib) noexcept;
@@ -132,7 +132,7 @@ Error X86RACFGBuilder::onInst(InstNode* inst, uint32_t& controlType, RAInstBuild
   if (Inst::isDefinedId(instId)) {
     uint32_t opCount = inst->opCount();
     const Operand* opArray = inst->operands();
-    ASMJIT_PROPAGATE(InstInternal::queryRWInfo(_archId, inst->baseInst(), opArray, opCount, rwInfo));
+    ASMJIT_PROPAGATE(InstInternal::queryRWInfo(_archId, inst->baseInst(), opArray, opCount, &rwInfo));
 
     const InstDB::InstInfo& instInfo = InstDB::infoById(instId);
     bool hasGpbHiConstraint = false;
@@ -343,10 +343,10 @@ Error X86RACFGBuilder::onInst(InstNode* inst, uint32_t& controlType, RAInstBuild
       if (singleRegOps == opCount) {
         singleRegCase = instInfo.singleRegCase();
       }
-      else if (opCount == 2 && inst->opType(1).isImm()) {
+      else if (opCount == 2 && inst->op(1).isImm()) {
         // Handle some tricks used by X86 asm.
-        const BaseReg& reg = inst->opType(0).as<BaseReg>();
-        const Imm& imm = inst->opType(1).as<Imm>();
+        const BaseReg& reg = inst->op(0).as<BaseReg>();
+        const Imm& imm = inst->op(1).as<Imm>();
 
         const RAWorkReg* workReg = _pass->workRegById(ib[0]->workId());
         uint32_t workRegSize = workReg->info().size();
@@ -355,7 +355,7 @@ Error X86RACFGBuilder::onInst(InstNode* inst, uint32_t& controlType, RAInstBuild
           case Inst::kIdOr: {
             // Sets the value of the destination register to -1, previous content unused.
             if (reg.size() >= 4 || reg.size() >= workRegSize) {
-              if (imm.i64() == -1 || imm.u64() == raImmMaskFromSize(reg.size()))
+              if (imm.value() == -1 || imm.valueAs<uint64_t>() == raImmMaskFromSize(reg.size()))
                 singleRegCase = InstDB::kSingleRegWO;
             }
             ASMJIT_FALLTHROUGH;
@@ -372,7 +372,7 @@ Error X86RACFGBuilder::onInst(InstNode* inst, uint32_t& controlType, RAInstBuild
           case Inst::kIdXor: {
             // Updates [E|R]FLAGS without changing the content.
             if (reg.size() != 4 || reg.size() >= workRegSize) {
-              if (imm.u64() == 0)
+              if (imm.value() == 0)
                 singleRegCase = InstDB::kSingleRegRO;
             }
             break;
@@ -402,12 +402,12 @@ Error X86RACFGBuilder::onInst(InstNode* inst, uint32_t& controlType, RAInstBuild
 // [asmjit::x86::X86RACFGBuilder - OnCall]
 // ============================================================================
 
-Error X86RACFGBuilder::onBeforeCall(FuncCallNode* call) noexcept {
-  uint32_t argCount = call->argCount();
-  uint32_t retCount = call->retCount();
-  const FuncDetail& fd = call->detail();
+Error X86RACFGBuilder::onBeforeInvoke(InvokeNode* invokeNode) noexcept {
+  uint32_t argCount = invokeNode->argCount();
+  uint32_t retCount = invokeNode->retCount();
+  const FuncDetail& fd = invokeNode->detail();
 
-  cc()->_setCursor(call->prev());
+  cc()->_setCursor(invokeNode->prev());
 
   for (uint32_t argIndex = 0; argIndex < argCount; argIndex++) {
     for (uint32_t argHi = 0; argHi <= kFuncArgHi; argHi += kFuncArgHi) {
@@ -415,7 +415,7 @@ Error X86RACFGBuilder::onBeforeCall(FuncCallNode* call) noexcept {
         continue;
 
       const FuncValue& arg = fd.arg(argIndex + argHi);
-      const Operand& op = call->arg(argIndex + argHi);
+      const Operand& op = invokeNode->arg(argIndex + argHi);
 
       if (op.isNone())
         continue;
@@ -430,34 +430,34 @@ Error X86RACFGBuilder::onBeforeCall(FuncCallNode* call) noexcept {
           uint32_t argGroup = Reg::groupOf(arg.regType());
 
           if (regGroup != argGroup) {
-            // TODO:
+            // TODO: Conversion is not supported.
             ASMJIT_ASSERT(false);
           }
         }
         else {
-          ASMJIT_PROPAGATE(moveRegToStackArg(call, arg, op.as<BaseReg>()));
+          ASMJIT_PROPAGATE(moveRegToStackArg(invokeNode, arg, op.as<BaseReg>()));
         }
       }
       else if (op.isImm()) {
         if (arg.isReg()) {
           BaseReg reg;
-          ASMJIT_PROPAGATE(moveImmToRegArg(call, arg, op.as<Imm>(), &reg));
-          call->_args[argIndex + argHi] = reg;
+          ASMJIT_PROPAGATE(moveImmToRegArg(invokeNode, arg, op.as<Imm>(), &reg));
+          invokeNode->_args[argIndex + argHi] = reg;
         }
         else {
-          ASMJIT_PROPAGATE(moveImmToStackArg(call, arg, op.as<Imm>()));
+          ASMJIT_PROPAGATE(moveImmToStackArg(invokeNode, arg, op.as<Imm>()));
         }
       }
     }
   }
 
-  cc()->_setCursor(call);
+  cc()->_setCursor(invokeNode);
   if (fd.hasFlag(CallConv::kFlagCalleePopsStack))
     ASMJIT_PROPAGATE(cc()->sub(cc()->zsp(), fd.argStackSize()));
 
   for (uint32_t retIndex = 0; retIndex < retCount; retIndex++) {
     const FuncValue& ret = fd.ret(retIndex);
-    const Operand& op = call->ret(retIndex);
+    const Operand& op = invokeNode->ret(retIndex);
 
     if (op.isReg()) {
       const Reg& reg = op.as<Reg>();
@@ -500,7 +500,7 @@ Error X86RACFGBuilder::onBeforeCall(FuncCallNode* call) noexcept {
           uint32_t retGroup = Reg::groupOf(ret.regType());
 
           if (regGroup != retGroup) {
-            // TODO:
+            // TODO: Conversion is not supported.
             ASMJIT_ASSERT(false);
           }
         }
@@ -508,7 +508,7 @@ Error X86RACFGBuilder::onBeforeCall(FuncCallNode* call) noexcept {
     }
   }
 
-  // This block has function call(s).
+  // This block has function invokeNode(s).
   _curBlock->addFlags(RABlock::kFlagHasFuncCalls);
   _pass->func()->frame().addAttributes(FuncFrame::kAttrHasFuncCalls);
   _pass->func()->frame().updateCallStackSize(fd.argStackSize());
@@ -516,10 +516,10 @@ Error X86RACFGBuilder::onBeforeCall(FuncCallNode* call) noexcept {
   return kErrorOk;
 }
 
-Error X86RACFGBuilder::onCall(FuncCallNode* call, RAInstBuilder& ib) noexcept {
-  uint32_t argCount = call->argCount();
-  uint32_t retCount = call->retCount();
-  const FuncDetail& fd = call->detail();
+Error X86RACFGBuilder::onInvoke(InvokeNode* invokeNode, RAInstBuilder& ib) noexcept {
+  uint32_t argCount = invokeNode->argCount();
+  uint32_t retCount = invokeNode->retCount();
+  const FuncDetail& fd = invokeNode->detail();
 
   for (uint32_t argIndex = 0; argIndex < argCount; argIndex++) {
     for (uint32_t argHi = 0; argHi <= kFuncArgHi; argHi += kFuncArgHi) {
@@ -527,7 +527,7 @@ Error X86RACFGBuilder::onCall(FuncCallNode* call, RAInstBuilder& ib) noexcept {
         continue;
 
       const FuncValue& arg = fd.arg(argIndex + argHi);
-      const Operand& op = call->arg(argIndex + argHi);
+      const Operand& op = invokeNode->arg(argIndex + argHi);
 
       if (op.isNone())
         continue;
@@ -551,7 +551,7 @@ Error X86RACFGBuilder::onCall(FuncCallNode* call, RAInstBuilder& ib) noexcept {
 
   for (uint32_t retIndex = 0; retIndex < retCount; retIndex++) {
     const FuncValue& ret = fd.ret(retIndex);
-    const Operand& op = call->ret(retIndex);
+    const Operand& op = invokeNode->ret(retIndex);
 
     // Not handled here...
     if (ret.regType() == Reg::kTypeSt)
@@ -589,8 +589,8 @@ Error X86RACFGBuilder::onCall(FuncCallNode* call, RAInstBuilder& ib) noexcept {
 // [asmjit::x86::X86RACFGBuilder - MoveImmToRegArg]
 // ============================================================================
 
-Error X86RACFGBuilder::moveImmToRegArg(FuncCallNode* call, const FuncValue& arg, const Imm& imm_, BaseReg* out) noexcept {
-  DebugUtils::unused(call);
+Error X86RACFGBuilder::moveImmToRegArg(InvokeNode* invokeNode, const FuncValue& arg, const Imm& imm_, BaseReg* out) noexcept {
+  DebugUtils::unused(invokeNode);
   ASMJIT_ASSERT(arg.isReg());
 
   Imm imm(imm_);
@@ -623,7 +623,7 @@ MovU32:
       return DebugUtils::errored(kErrorInvalidState);
   }
 
-  ASMJIT_PROPAGATE(cc()->_newReg(*out, rTypeId, nullptr));
+  ASMJIT_PROPAGATE(cc()->_newReg(out, rTypeId, nullptr));
   cc()->virtRegById(out->id())->setWeight(RAPass::kCallArgWeight);
 
   return cc()->mov(out->as<x86::Gp>(), imm);
@@ -633,8 +633,8 @@ MovU32:
 // [asmjit::x86::X86RACFGBuilder - MoveImmToStackArg]
 // ============================================================================
 
-Error X86RACFGBuilder::moveImmToStackArg(FuncCallNode* call, const FuncValue& arg, const Imm& imm_) noexcept {
-  DebugUtils::unused(call);
+Error X86RACFGBuilder::moveImmToStackArg(InvokeNode* invokeNode, const FuncValue& arg, const Imm& imm_) noexcept {
+  DebugUtils::unused(invokeNode);
   ASMJIT_ASSERT(arg.isStack());
 
   Mem mem = ptr(_pass->_sp.as<Gp>(), arg.stackOffset());
@@ -674,7 +674,7 @@ MovU32:
         break;
       }
 
-      imm[1].setU32(imm[0].u32Hi());
+      imm[1].setValue(imm[0].uint32Hi());
       imm[0].zeroExtend32Bits();
       nMovs = 2;
       break;
@@ -695,8 +695,8 @@ MovU32:
 // [asmjit::x86::X86RACFGBuilder - MoveRegToStackArg]
 // ============================================================================
 
-Error X86RACFGBuilder::moveRegToStackArg(FuncCallNode* call, const FuncValue& arg, const BaseReg& reg) noexcept {
-  DebugUtils::unused(call);
+Error X86RACFGBuilder::moveRegToStackArg(InvokeNode* invokeNode, const FuncValue& arg, const BaseReg& reg) noexcept {
+  DebugUtils::unused(invokeNode);
   ASMJIT_ASSERT(arg.isStack());
 
   Mem mem = ptr(_pass->_sp.as<Gp>(), arg.stackOffset());
@@ -1117,12 +1117,12 @@ Error X86RAPass::onEmitJump(const Label& label) noexcept {
   return cc()->jmp(label);
 }
 
-Error X86RAPass::onEmitPreCall(FuncCallNode* call) noexcept {
-  if (call->detail().hasVarArgs()) {
-    uint32_t argCount = call->argCount();
-    const FuncDetail& fd = call->detail();
+Error X86RAPass::onEmitPreCall(InvokeNode* invokeNode) noexcept {
+  if (invokeNode->detail().hasVarArgs()) {
+    uint32_t argCount = invokeNode->argCount();
+    const FuncDetail& fd = invokeNode->detail();
 
-    switch (call->detail().callConv().id()) {
+    switch (invokeNode->detail().callConv().id()) {
       case CallConv::kIdX86SysV64: {
         // AL register contains the number of arguments passed in XMM register(s).
         uint32_t n = 0;

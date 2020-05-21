@@ -42,14 +42,14 @@ ASMJIT_BEGIN_NAMESPACE
 
 // NOTE: Keep `const constexpr` otherwise MSC would not compile this code correctly.
 static const constexpr uint32_t archInfoTable[] = {
-  // <--------------------+---------------------+-------------------+-------+
-  //                      | Type                | SubType           | GPInfo|
-  // <--------------------+---------------------+-------------------+-------+
-  Support::bytepack32_4x8(ArchInfo::kIdNone  , ArchInfo::kSubIdNone, 0,  0),
-  Support::bytepack32_4x8(ArchInfo::kIdX86   , ArchInfo::kSubIdNone, 4,  8),
-  Support::bytepack32_4x8(ArchInfo::kIdX64   , ArchInfo::kSubIdNone, 8, 16),
-  Support::bytepack32_4x8(ArchInfo::kIdA32   , ArchInfo::kSubIdNone, 4, 16),
-  Support::bytepack32_4x8(ArchInfo::kIdA64   , ArchInfo::kSubIdNone, 8, 32)
+  // <-------------------+---------------------+---------------------+--------+
+  //                     | Type                | SubType             |  GPInfo|
+  // <-------------------+---------------------+---------------------+--------+
+  Support::bytepack32_4x8(ArchInfo::kIdNone    , ArchInfo::kSubIdNone, 0,  0),
+  Support::bytepack32_4x8(ArchInfo::kIdX86     , ArchInfo::kSubIdNone, 4,  8),
+  Support::bytepack32_4x8(ArchInfo::kIdX64     , ArchInfo::kSubIdNone, 8, 16),
+  Support::bytepack32_4x8(ArchInfo::kIdArm32   , ArchInfo::kSubIdNone, 4, 16),
+  Support::bytepack32_4x8(ArchInfo::kIdArm64   , ArchInfo::kSubIdNone, 8, 32)
 };
 
 ASMJIT_FAVOR_SIZE void ArchInfo::init(uint32_t id, uint32_t subId) noexcept {
@@ -72,7 +72,7 @@ ASMJIT_FAVOR_SIZE void ArchInfo::init(uint32_t id, uint32_t subId) noexcept {
 ASMJIT_FAVOR_SIZE Error ArchUtils::typeIdToRegInfo(uint32_t archId, uint32_t& typeIdInOut, RegInfo& regInfo) noexcept {
   uint32_t typeId = typeIdInOut;
 
-  // Zero the signature so it's clear in case that typeId is not invalid.
+  // Zero the signature so it's clear in case that the typeId is invalid.
   regInfo._signature = 0;
 
   // TODO: Move to X86 backend.

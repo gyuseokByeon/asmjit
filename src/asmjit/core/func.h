@@ -32,7 +32,7 @@
 
 ASMJIT_BEGIN_NAMESPACE
 
-//! \addtogroup asmjit_func
+//! \addtogroup asmjit_function
 //! \{
 
 // ============================================================================
@@ -472,12 +472,13 @@ public:
 //! frame. The function frame in most cases won't use all of the properties
 //! illustrated (for example Spill Zone and Red Zone are never used together).
 //!
+//! ```
 //!   +-----------------------------+
 //!   | Arguments Passed by Stack   |
 //!   +-----------------------------+
 //!   | Spill Zone                  |
 //!   +-----------------------------+ <- Stack offset (args) starts from here.
-//!   | Return Address if Pushed    |
+//!   | Return Address, if Pushed   |
 //!   +-----------------------------+ <- Stack pointer (SP) upon entry.
 //!   | Save/Restore Stack.         |
 //!   +-----------------------------+-----------------------------+
@@ -487,25 +488,35 @@ public:
 //!   +-----------------------------+-----------------------------+ <- SP after prolog.
 //!   | Red Zone                    |
 //!   +-----------------------------+
+//! ```
 class FuncFrame {
 public:
   enum Tag : uint32_t {
-    kTagInvalidOffset     = 0xFFFFFFFFu  //!< Tag used to inform that some offset is invalid.
+    //! Tag used to inform that some offset is invalid.
+    kTagInvalidOffset = 0xFFFFFFFFu
   };
 
   //! Attributes are designed in a way that all are initially false, and user
   //! or FuncFrame finalizer adds them when necessary.
   enum Attributes : uint32_t {
-    kAttrHasVarArgs       = 0x00000001u, //!< Function has variable number of arguments.
-    kAttrHasPreservedFP   = 0x00000010u, //!< Preserve frame pointer (don't omit FP).
-    kAttrHasFuncCalls     = 0x00000020u, //!< Function calls other functions (is not leaf).
+    //! Function has variable number of arguments.
+    kAttrHasVarArgs = 0x00000001u,
+    //! Preserve frame pointer (don't omit FP).
+    kAttrHasPreservedFP = 0x00000010u,
+    //! Function calls other functions (is not leaf).
+    kAttrHasFuncCalls = 0x00000020u,
 
-    kAttrX86AvxEnabled    = 0x00010000u, //!< Use AVX instead of SSE for all operations (X86).
-    kAttrX86AvxCleanup    = 0x00020000u, //!< Emit VZEROUPPER instruction in epilog (X86).
-    kAttrX86MmxCleanup    = 0x00040000u, //!< Emit EMMS instruction in epilog (X86).
+    //! Use AVX instead of SSE for all operations (X86).
+    kAttrX86AvxEnabled = 0x00010000u,
+    //! Emit VZEROUPPER instruction in epilog (X86).
+    kAttrX86AvxCleanup = 0x00020000u,
+    //! Emit EMMS instruction in epilog (X86).
+    kAttrX86MmxCleanup = 0x00040000u,
 
-    kAttrAlignedVecSR     = 0x40000000u, //!< Function has aligned save/restore of vector registers.
-    kAttrIsFinalized      = 0x80000000u  //!< FuncFrame is finalized and can be used by PEI.
+    //! Function has aligned save/restore of vector registers.
+    kAttrAlignedVecSR = 0x40000000u,
+    //! FuncFrame is finalized and can be used by PEI.
+    kAttrIsFinalized = 0x80000000u
   };
 
   //! Function attributes.
@@ -784,10 +795,8 @@ public:
   }
 
   inline void setAllDirty() noexcept {
-    _dirtyRegs[0] = 0xFFFFFFFFu;
-    _dirtyRegs[1] = 0xFFFFFFFFu;
-    _dirtyRegs[2] = 0xFFFFFFFFu;
-    _dirtyRegs[3] = 0xFFFFFFFFu;
+    for (size_t i = 0; i < ASMJIT_ARRAY_SIZE(_dirtyRegs); i++)
+      _dirtyRegs[i] = 0xFFFFFFFFu;
   }
 
   inline void setAllDirty(uint32_t group) noexcept {

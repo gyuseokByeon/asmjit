@@ -297,22 +297,6 @@
   #define ASMJIT_CXX_HAS_CPP_ATTRIBUTE(NAME, CHECK) (!(!(CHECK)))
 #endif
 
-// Compiler features by vendor.
-#if defined(_MSC_VER) && !defined(_NATIVE_WCHAR_T_DEFINED)
-  #define ASMJIT_CXX_HAS_NATIVE_WCHAR_T 0
-#else
-  #define ASMJIT_CXX_HAS_NATIVE_WCHAR_T 1
-#endif
-
-#if ASMJIT_CXX_HAS_FEATURE(cxx_unicode_literals, ( \
-                          (ASMJIT_CXX_INTEL >= ASMJIT_CXX_MAKE_VER(14, 0, 0)) || \
-                          (ASMJIT_CXX_MSC   >= ASMJIT_CXX_MAKE_VER(19, 0, 0)) || \
-                          (ASMJIT_CXX_GNU   >= ASMJIT_CXX_MAKE_VER(4 , 5, 0) && __cplusplus >= 201103L) ))
-  #define ASMJIT_CXX_HAS_UNICODE_LITERALS 1
-#else
-  #define ASMJIT_CXX_HAS_UNICODE_LITERALS 0
-#endif
-
 // ============================================================================
 // [asmjit::Build - Globals - API Decorators & Language Extensions]
 // ============================================================================
@@ -426,17 +410,17 @@
   #define ASMJIT_FALLTHROUGH ((void)0) /* fallthrough */
 #endif
 
+#if defined(__GNUC__)
+  #define ASMJIT_DEPRECATED(MESSAGE) __attribute__((__deprecated__(MESSAGE)))
+#elif ASMJIT_MSC
+  #define ASMJIT_DEPRECATED(MESSAGE) __declspec(deprecated(MESSAGE))
+#else
+  #define ASMJIT_DEPRECATED(MESSAGE)
+#endif
+
 // Utilities.
 #define ASMJIT_OFFSET_OF(STRUCT, MEMBER) ((int)(intptr_t)((const char*)&((const STRUCT*)0x100)->MEMBER) - 0x100)
 #define ASMJIT_ARRAY_SIZE(X) uint32_t(sizeof(X) / sizeof(X[0]))
-
-#if ASMJIT_CXX_HAS_ATTRIBUTE(attribute_deprecated_with_message, ASMJIT_CXX_GNU >= ASMJIT_CXX_MAKE_VER(4, 5, 0))
-  #define ASMJIT_DEPRECATED(DECL, MESSAGE) DECL __attribute__((__deprecated__(MESSAGE)))
-#elif ASMJIT_MSC
-  #define ASMJIT_DEPRECATED(DECL, MESSAGE) __declspec(deprecated(MESSAGE)) DECL
-#else
-  #define ASMJIT_DEPRECATED(DECL, MESSAGE) DECL
-#endif
 
 #if ASMJIT_CXX_HAS_ATTRIBUTE(no_sanitize, 0)
   #define ASMJIT_ATTRIBUTE_NO_SANITIZE_UNDEF __attribute__((__no_sanitize__("undefined")))
@@ -521,13 +505,11 @@
 // [asmjit::Build - Globals - Cleanup]
 // ============================================================================
 
-// Try to cleanup things not used in other public headers.
-#ifndef ASMJIT_EXPORTS
-  #undef ASMJIT_CXX_CLANG
-  #undef ASMJIT_CXX_GNU
-  #undef ASMJIT_CXX_INTEL
-  #undef ASMJIT_CXX_MSC
-  #undef ASMJIT_CXX_MAKE_VER
-#endif
+// Cleanup definitions that are only used within this header file.
+#undef ASMJIT_CXX_CLANG
+#undef ASMJIT_CXX_GNU
+#undef ASMJIT_CXX_INTEL
+#undef ASMJIT_CXX_MSC
+#undef ASMJIT_CXX_MAKE_VER
 
 #endif // ASMJIT_CORE_API_CONFIG_H_INCLUDED

@@ -76,7 +76,7 @@ uint32_t InstAPI::stringToInstId(uint32_t archId, const char* s, size_t len) noe
 // ============================================================================
 
 #ifndef ASMJIT_NO_VALIDATION
-Error InstAPI::validate(uint32_t archId, const BaseInst& inst, const Operand_* operands, uint32_t opCount) noexcept {
+Error InstAPI::validate(uint32_t archId, const BaseInst& inst, const Operand_* operands, size_t opCount) noexcept {
 #ifdef ASMJIT_BUILD_X86
   if (ArchInfo::isX86Family(archId))
     return x86::InstInternal::validate(archId, inst, operands, opCount);
@@ -96,7 +96,7 @@ Error InstAPI::validate(uint32_t archId, const BaseInst& inst, const Operand_* o
 // ============================================================================
 
 #ifndef ASMJIT_NO_INTROSPECTION
-Error InstAPI::queryRWInfo(uint32_t archId, const BaseInst& inst, const Operand_* operands, uint32_t opCount, InstRWInfo& out) noexcept {
+Error InstAPI::queryRWInfo(uint32_t archId, const BaseInst& inst, const Operand_* operands, size_t opCount, InstRWInfo* out) noexcept {
   if (ASMJIT_UNLIKELY(opCount > 6))
     return DebugUtils::errored(kErrorInvalidArgument);
 
@@ -119,7 +119,7 @@ Error InstAPI::queryRWInfo(uint32_t archId, const BaseInst& inst, const Operand_
 // ============================================================================
 
 #ifndef ASMJIT_NO_INTROSPECTION
-Error InstAPI::queryFeatures(uint32_t archId, const BaseInst& inst, const Operand_* operands, uint32_t opCount, BaseFeatures& out) noexcept {
+Error InstAPI::queryFeatures(uint32_t archId, const BaseInst& inst, const Operand_* operands, size_t opCount, BaseFeatures* out) noexcept {
 #ifdef ASMJIT_BUILD_X86
   if (ArchInfo::isX86Family(archId))
     return x86::InstInternal::queryFeatures(archId, inst, operands, opCount, out);

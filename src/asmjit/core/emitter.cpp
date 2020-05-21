@@ -22,7 +22,9 @@
 // 3. This notice may not be removed or altered from any source distribution.
 
 #include "../core/api-build_p.h"
-#include "../core/logging.h"
+#include "../core/emitterutils_p.h"
+#include "../core/errorhandler.h"
+#include "../core/logger.h"
 #include "../core/support.h"
 
 #ifdef ASMJIT_BUILD_X86
@@ -64,26 +66,6 @@ BaseEmitter::~BaseEmitter() noexcept {
 }
 
 // ============================================================================
-// [asmjit::BaseEmitter - Code-Generation]
-// ============================================================================
-
-Error BaseEmitter::_emitOpArray(uint32_t instId, const Operand_* operands, size_t count) {
-  const Operand_* op = operands;
-  const Operand& none_ = Globals::none;
-
-  switch (count) {
-    case  0: return _emit(instId, none_, none_, none_, none_);
-    case  1: return _emit(instId, op[0], none_, none_, none_);
-    case  2: return _emit(instId, op[0], op[1], none_, none_);
-    case  3: return _emit(instId, op[0], op[1], op[2], none_);
-    case  4: return _emit(instId, op[0], op[1], op[2], op[3]);
-    case  5: return _emit(instId, op[0], op[1], op[2], op[3], op[4], none_);
-    case  6: return _emit(instId, op[0], op[1], op[2], op[3], op[4], op[5]);
-    default: return DebugUtils::errored(kErrorInvalidArgument);
-  }
-}
-
-// ============================================================================
 // [asmjit::BaseEmitter - Finalize]
 // ============================================================================
 
@@ -105,11 +87,9 @@ Error BaseEmitter::finalize() {
 // ============================================================================
 
 Error BaseEmitter::reportError(Error err, const char* message) {
-  ErrorHandler* handler = errorHandler();
-  if (!handler) {
-    if (code())
-      handler = code()->errorHandler();
-  }
+  ErrorHandler* handler = _errorHandler;
+  if (!handler && _code)
+    handler = _code->errorHandler();
 
   if (handler) {
     if (!message)
@@ -126,6 +106,81 @@ Error BaseEmitter::reportError(Error err, const char* message) {
 
 bool BaseEmitter::isLabelValid(uint32_t labelId) const noexcept {
   return _code && labelId < _code->labelCount();
+}
+
+// ============================================================================
+// [asmjit::BaseEmitter - Emit (Low-Level)]
+// ============================================================================
+
+using EmitterUtils::noExt;
+
+Error BaseEmitter::_emitI(uint32_t instId) {
+  return _emit(instId, noExt[0], noExt[1], noExt[2], noExt);
+}
+
+Error BaseEmitter::_emitI(uint32_t instId, const Operand_& o0) {
+  return _emit(instId, o0, noExt[1], noExt[2], noExt);
+}
+
+Error BaseEmitter::_emitI(uint32_t instId, const Operand_& o0, const Operand_& o1) {
+  return _emit(instId, o0, o1, noExt[2], noExt);
+}
+
+Error BaseEmitter::_emitI(uint32_t instId, const Operand_& o0, const Operand_& o1, const Operand_& o2) {
+  return _emit(instId, o0, o1, o2, noExt);
+}
+
+Error BaseEmitter::_emitI(uint32_t instId, const Operand_& o0, const Operand_& o1, const Operand_& o2, const Operand_& o3) {
+  Operand_ opExt[3] = { o3 };
+  return _emit(instId, o0, o1, o2, opExt);
+}
+
+Error BaseEmitter::_emitI(uint32_t instId, const Operand_& o0, const Operand_& o1, const Operand_& o2, const Operand_& o3, const Operand_& o4) {
+  Operand_ opExt[3] = { o3, o4 };
+  return _emit(instId, o0, o1, o2, opExt);
+}
+
+Error BaseEmitter::_emitI(uint32_t instId, const Operand_& o0, const Operand_& o1, const Operand_& o2, const Operand_& o3, const Operand_& o4, const Operand_& o5) {
+  Operand_ opExt[3] = { o3, o4, o5 };
+  return _emit(instId, o0, o1, o2, opExt);
+}
+
+Error BaseEmitter::_emitOpArray(uint32_t instId, const Operand_* operands, size_t opCount) {
+  const Operand_* op = operands;
+
+  Operand_ opExt[3];
+
+  switch (opCount) {
+    case 0:
+      return _emit(instId, noExt[0], noExt[1], noExt[2], noExt);
+
+    case 1:
+      return _emit(instId, op[0], noExt[1], noExt[2], noExt);
+
+    case 2:
+      return _emit(instId, op[0], op[1], noExt[2], noExt);
+
+    case 3:
+      return _emit(instId, op[0], op[1], op[2], noExt);
+
+    case 4:
+      opExt[0] = op[3];
+      opExt[1].reset();
+      opExt[2].reset();
+      return _emit(instId, op[0], op[1], op[2], opExt);
+
+    case 5:
+      opExt[0] = op[3];
+      opExt[1] = op[4];
+      opExt[2].reset();
+      return _emit(instId, op[0], op[1], op[2], opExt);
+
+    case 6:
+      return _emit(instId, op[0], op[1], op[2], op + 3);
+
+    default:
+      return DebugUtils::errored(kErrorInvalidArgument);
+  }
 }
 
 // ============================================================================
@@ -192,17 +247,11 @@ Error BaseEmitter::commentf(const char* fmt, ...) {
     return DebugUtils::errored(kErrorNotInitialized);
 
 #ifndef ASMJIT_NO_LOGGING
-  StringTmp<1024> sb;
-
   va_list ap;
   va_start(ap, fmt);
-  Error err = sb.appendVFormat(fmt, ap);
+  Error err = commentv(fmt, ap);
   va_end(ap);
-
-  if (ASMJIT_UNLIKELY(err))
-    return err;
-
-  return comment(sb.data(), sb.size());
+  return err;
 #else
   DebugUtils::unused(fmt);
   return kErrorOk;
@@ -215,8 +264,8 @@ Error BaseEmitter::commentv(const char* fmt, va_list ap) {
 
 #ifndef ASMJIT_NO_LOGGING
   StringTmp<1024> sb;
-
   Error err = sb.appendVFormat(fmt, ap);
+
   if (ASMJIT_UNLIKELY(err))
     return err;
 

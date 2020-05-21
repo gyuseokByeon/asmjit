@@ -41,11 +41,11 @@ struct OpcodeDumpInfo {
 
 static const char* archIdToString(uint32_t archId) {
   switch (archId) {
-    case ArchInfo::kIdNone: return "None";
-    case ArchInfo::kIdX86 : return "X86";
-    case ArchInfo::kIdX64 : return "X64";
-    case ArchInfo::kIdA32 : return "A32";
-    case ArchInfo::kIdA64 : return "A64";
+    case ArchInfo::kIdNone : return "None";
+    case ArchInfo::kIdX86  : return "X86";
+    case ArchInfo::kIdX64  : return "X64";
+    case ArchInfo::kIdArm32: return "Arm32";
+    case ArchInfo::kIdArm64: return "Arm64";
 
     default:
       return "<unknown>";

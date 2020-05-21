@@ -23,7 +23,7 @@
 
 #include "../core/api-build_p.h"
 #include "../core/assembler.h"
-#include "../core/logging.h"
+#include "../core/logger.h"
 #include "../core/support.h"
 
 ASMJIT_BEGIN_NAMESPACE
@@ -76,13 +76,6 @@ public:
   LabelLink** _pPrev;
   LabelLink* _link;
 };
-
-// ============================================================================
-// [asmjit::ErrorHandler]
-// ============================================================================
-
-ErrorHandler::ErrorHandler() noexcept {}
-ErrorHandler::~ErrorHandler() noexcept {}
 
 // ============================================================================
 // [asmjit::CodeHolder - Utilities]
@@ -470,20 +463,24 @@ Error CodeHolder::addAddressToAddressTable(uint64_t address) noexcept {
 //! Only used to lookup a label from `_namedLabels`.
 class LabelByName {
 public:
-  inline LabelByName(const char* key, size_t keySize, uint32_t hashCode) noexcept
+  inline LabelByName(const char* key, size_t keySize, uint32_t hashCode, uint32_t parentId) noexcept
     : _key(key),
       _keySize(uint32_t(keySize)),
-      _hashCode(hashCode) {}
+      _hashCode(hashCode),
+      _parentId(parentId) {}
 
   inline uint32_t hashCode() const noexcept { return _hashCode; }
 
   inline bool matches(const LabelEntry* entry) const noexcept {
-    return entry->nameSize() == _keySize && ::memcmp(entry->name(), _key, _keySize) == 0;
+    return entry->nameSize() == _keySize &&
+           entry->parentId() == _parentId &&
+           ::memcmp(entry->name(), _key, _keySize) == 0;
   }
 
   const char* _key;
   uint32_t _keySize;
   uint32_t _hashCode;
+  uint32_t _parentId;
 };
 
 // Returns a hash of `name` and fixes `nameSize` if it's `SIZE_MAX`.
@@ -539,7 +536,7 @@ LabelLink* CodeHolder::newLabelLink(LabelEntry* le, uint32_t sectionId, size_t o
 }
 
 Error CodeHolder::newLabelEntry(LabelEntry** entryOut) noexcept {
-  *entryOut = 0;
+  *entryOut = nullptr;
 
   uint32_t labelId = _labelEntries.size();
   if (ASMJIT_UNLIKELY(labelId == Globals::kInvalidId))
@@ -561,7 +558,7 @@ Error CodeHolder::newLabelEntry(LabelEntry** entryOut) noexcept {
 }
 
 Error CodeHolder::newNamedLabelEntry(LabelEntry** entryOut, const char* name, size_t nameSize, uint32_t type, uint32_t parentId) noexcept {
-  *entryOut = 0;
+  *entryOut = nullptr;
   uint32_t hashCode = CodeHolder_hashNameAndGetSize(name, nameSize);
 
   if (ASMJIT_UNLIKELY(nameSize == 0))
@@ -580,7 +577,7 @@ Error CodeHolder::newNamedLabelEntry(LabelEntry** entryOut, const char* name, si
 
     case Label::kTypeGlobal:
       if (ASMJIT_UNLIKELY(parentId != Globals::kInvalidId))
-        return DebugUtils::errored(kErrorNonLocalLabelCantHaveParent);
+        return DebugUtils::errored(kErrorNonLocalLabelCannotHaveParent);
 
       break;
 
@@ -591,7 +588,7 @@ Error CodeHolder::newNamedLabelEntry(LabelEntry** entryOut, const char* name, si
   // Don't allow to insert duplicates. Local labels allow duplicates that have
   // different id, this is already accomplished by having a different hashes
   // between the same label names having different parent labels.
-  LabelEntry* le = _namedLabels.get(LabelByName(name, nameSize, hashCode));
+  LabelEntry* le = _namedLabels.get(LabelByName(name, nameSize, hashCode, parentId));
   if (ASMJIT_UNLIKELY(le))
     return DebugUtils::errored(kErrorLabelAlreadyDefined);
 
@@ -610,7 +607,7 @@ Error CodeHolder::newNamedLabelEntry(LabelEntry** entryOut, const char* name, si
   le->_hashCode = hashCode;
   le->_setId(labelId);
   le->_type = uint8_t(type);
-  le->_parentId = Globals::kInvalidId;
+  le->_parentId = parentId;
   le->_offset = 0;
   ASMJIT_PROPAGATE(le->_name.setData(&_zone, name, nameSize));
 
@@ -622,13 +619,14 @@ Error CodeHolder::newNamedLabelEntry(LabelEntry** entryOut, const char* name, si
 }
 
 uint32_t CodeHolder::labelIdByName(const char* name, size_t nameSize, uint32_t parentId) noexcept {
-  // TODO: Finalize - parent id is not used here?
-  DebugUtils::unused(parentId);
-
   uint32_t hashCode = CodeHolder_hashNameAndGetSize(name, nameSize);
-  if (ASMJIT_UNLIKELY(!nameSize)) return 0;
+  if (ASMJIT_UNLIKELY(!nameSize))
+    return 0;
 
-  LabelEntry* le = _namedLabels.get(LabelByName(name, nameSize, hashCode));
+  if (parentId != Globals::kInvalidId)
+    hashCode ^= parentId;
+
+  LabelEntry* le = _namedLabels.get(LabelByName(name, nameSize, hashCode, parentId));
   return le ? le->id() : uint32_t(Globals::kInvalidId);
 }
 

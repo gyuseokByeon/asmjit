@@ -177,8 +177,8 @@ static void generateAlphaBlend(asmjit::x86::Compiler& cc) {
   // Data.
   cc.align(kAlignData, 16);
   cc.bind(L_DataPool);
-  cc.dxmm(Data128::fromI16(0x0080));
-  cc.dxmm(Data128::fromI16(0x0101));
+  cc.embedUInt16(uint16_t(0x0080u), 8);
+  cc.embedUInt16(uint16_t(0x0101u), 8);
 }
 
 } // {asmtest}

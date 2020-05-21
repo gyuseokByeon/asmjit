@@ -42,6 +42,7 @@ ASMJIT_BEGIN_NAMESPACE
 // [asmjit::RABlock]
 // ============================================================================
 
+//! Basic block used by register allocator pass.
 class RABlock {
 public:
   ASMJIT_NONCOPYABLE(RABlock)
@@ -53,6 +54,7 @@ public:
     kUnassignedId = 0xFFFFFFFFu
   };
 
+  //! Basic block flags.
   enum Flags : uint32_t {
     //! Block has been constructed from nodes.
     kFlagIsConstructed    = 0x00000001u,
@@ -111,9 +113,6 @@ public:
   //! Block successors.
   RABlocks _successors;
 
-  // TODO: Used?
-  RABlocks _doms;
-
   enum LiveType : uint32_t {
     kLiveIn               = 0,
     kLiveOut              = 1,
@@ -157,7 +156,6 @@ public:
       _idom(nullptr),
       _predecessors(),
       _successors(),
-      _doms(),
       _sharedAssignmentId(Globals::kInvalidId),
       _entryScratchGpRegs(0),
       _exitScratchGpRegs(0),
@@ -761,14 +759,14 @@ public:
   //! \name Accessors
   //! \{
 
-  //! Returns `Logger` passed to `runOnFunction()`.
+  //! Returns \ref Logger passed to \ref runOnFunction().
   inline Logger* logger() const noexcept { return _logger; }
-  //! Returns `Logger` passed to `runOnFunction()` or null if `kOptionDebugPasses` is not set.
+  //! Returns \ref Logger passed to \ref runOnFunction() or null if `kOptionDebugPasses` is not set.
   inline Logger* debugLogger() const noexcept { return _debugLogger; }
 
-  //! Returns `Zone` passed to `runOnFunction()`.
+  //! Returns \ref Zone passed to \ref runOnFunction().
   inline Zone* zone() const noexcept { return _allocator.zone(); }
-  //! Returns `ZoneAllocator` used by the register allocator.
+  //! Returns \ref ZoneAllocator used by the register allocator.
   inline ZoneAllocator* allocator() const noexcept { return const_cast<ZoneAllocator*>(&_allocator); }
 
   inline const ZoneVector<RASharedAssignment>& sharedAssignments() const { return _sharedAssignments; }
@@ -800,7 +798,7 @@ public:
   }
 
   //! Runs the register allocator for the given `func`.
-  Error runOnFunction(Zone* zone, Logger* logger, FuncNode* func) noexcept override;
+  Error runOnFunction(Zone* zone, Logger* logger, FuncNode* func) override;
 
   //! Performs all allocation steps sequentially, called by `runOnFunction()`.
   Error onPerformAllSteps() noexcept;
@@ -810,11 +808,11 @@ public:
   //! \name Events
   //! \{
 
-  //! Called by `runOnFunction()` before the register allocation to initialize
+  //! Called by \ref runOnFunction() before the register allocation to initialize
   //! architecture-specific data and constraints.
   virtual void onInit() noexcept = 0;
 
-  //! Called by `runOnFunction()` after register allocation to clean everything
+  //! Called by \ref runOnFunction(` after register allocation to clean everything
   //! up. Called even if the register allocation failed.
   virtual void onDone() noexcept = 0;
 
@@ -1166,7 +1164,7 @@ public:
   virtual Error onEmitSave(uint32_t workId, uint32_t srcPhysId) noexcept = 0;
 
   virtual Error onEmitJump(const Label& label) noexcept = 0;
-  virtual Error onEmitPreCall(FuncCallNode* call) noexcept = 0;
+  virtual Error onEmitPreCall(InvokeNode* invokeNode) noexcept = 0;
 
   //! \}
 };

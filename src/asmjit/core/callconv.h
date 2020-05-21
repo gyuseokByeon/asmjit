@@ -30,7 +30,7 @@
 
 ASMJIT_BEGIN_NAMESPACE
 
-//! \addtogroup asmjit_func
+//! \addtogroup asmjit_function
 //! \{
 
 // ============================================================================
@@ -175,7 +175,7 @@ struct CallConv {
     // [Host]
     // ------------------------------------------------------------------------
 
-#if defined(ASMJIT_DOCGEN)
+#if defined(_DOXYGEN)
 
     //! Default calling convention based on the current C++ compiler's settings.
     //!
@@ -262,23 +262,36 @@ struct CallConv {
   //! as defined by WIN64 calling convention - it applies to 64-bit calling
   //! conventions only.
   enum Strategy : uint32_t {
-    kStrategyDefault     = 0,            //!< Default register assignment strategy.
-    kStrategyWin64       = 1             //!< WIN64 specific register assignment strategy.
+    //! Default register assignment strategy.
+    kStrategyDefault = 0,
+    //! WIN64 specific register assignment strategy.
+    kStrategyWin64 = 1
   };
 
   //! Calling convention flags.
   enum Flags : uint32_t {
-    kFlagCalleePopsStack = 0x01,         //!< Callee is responsible for cleaning up the stack.
-    kFlagPassFloatsByVec = 0x02,         //!< Pass F32 and F64 arguments by VEC128 register.
-    kFlagVectorCall      = 0x04,         //!< This is a '__vectorcall' calling convention.
-    kFlagIndirectVecArgs = 0x08          //!< Pass vector arguments indirectly (as a pointer).
+    //! Callee is responsible for cleaning up the stack.
+    kFlagCalleePopsStack = 0x01,
+    //! Pass F32 and F64 arguments by VEC128 register.
+    kFlagPassFloatsByVec = 0x02,
+    //! This is a '__vectorcall' calling convention.
+    kFlagVectorCall      = 0x04,
+    //! Pass vector arguments indirectly (as a pointer).
+    kFlagIndirectVecArgs = 0x08
   };
 
   //! \name Construction & Destruction
   //! \{
 
+  //! Initializes this calling convention to the given `ccId`, see \ref Id.
   ASMJIT_API Error init(uint32_t ccId) noexcept;
 
+  //! Resets this CallConv struct into a defined state.
+  //!
+  //! It's recommended to reset the \ref CallConv struct in case you would
+  //! like create a custom calling convention as it prevents from using an
+  //! uninitialized data (CallConv doesn't have a constructor that would
+  //! initialize it, it's just a struct).
   inline void reset() noexcept {
     memset(this, 0, sizeof(*this));
     memset(_passedOrder, 0xFF, sizeof(_passedOrder));
@@ -337,11 +350,13 @@ struct CallConv {
   //! implement custom calling conventions that guarantee higher stack alignment.
   inline void setNaturalStackAlignment(uint32_t value) noexcept { _naturalStackAlignment = uint8_t(value); }
 
+  //! Returns the order of passed registers of the given `group`, see \ref BaseReg::RegGroup.
   inline const uint8_t* passedOrder(uint32_t group) const noexcept {
     ASMJIT_ASSERT(group < BaseReg::kGroupVirt);
     return _passedOrder[group].id;
   }
 
+  //! Returns the mask of passed registers of the given `group`, see \ref BaseReg::RegGroup.
   inline uint32_t passedRegs(uint32_t group) const noexcept {
     ASMJIT_ASSERT(group < BaseReg::kGroupVirt);
     return _passedRegs[group];
@@ -356,6 +371,7 @@ struct CallConv {
     _passedOrder[group].packed[3] = p3;
   }
 
+  //! Resets the order and mask of passed registers.
   inline void setPassedToNone(uint32_t group) noexcept {
     ASMJIT_ASSERT(group < BaseReg::kGroupVirt);
 
@@ -363,6 +379,7 @@ struct CallConv {
     _passedRegs[group] = 0u;
   }
 
+  //! Sets the order and mask of passed registers.
   inline void setPassedOrder(uint32_t group, uint32_t a0, uint32_t a1 = 0xFF, uint32_t a2 = 0xFF, uint32_t a3 = 0xFF, uint32_t a4 = 0xFF, uint32_t a5 = 0xFF, uint32_t a6 = 0xFF, uint32_t a7 = 0xFF) noexcept {
     ASMJIT_ASSERT(group < BaseReg::kGroupVirt);
 
@@ -383,11 +400,13 @@ struct CallConv {
                          (a7 != 0xFF ? 1u << a7 : 0u) ;
   }
 
+  //! Returns preserved register mask of the given `group`, see \ref BaseReg::RegGroup.
   inline uint32_t preservedRegs(uint32_t group) const noexcept {
     ASMJIT_ASSERT(group < BaseReg::kGroupVirt);
     return _preservedRegs[group];
   }
 
+  //! Sets preserved register mask of the given `group`, see \ref BaseReg::RegGroup.
   inline void setPreservedRegs(uint32_t group, uint32_t regs) noexcept {
     ASMJIT_ASSERT(group < BaseReg::kGroupVirt);
     _preservedRegs[group] = regs;
@@ -398,7 +417,9 @@ struct CallConv {
   //! \name Static Functions
   //! \{
 
+  //! Tests whether the given `ccId` is X86 family calling convention id.
   static inline bool isX86Family(uint32_t ccId) noexcept { return ccId >= _kIdX86Start && ccId <= _kIdX64End; }
+  //! Tests whether the given `ccId` is ARM family calling convention id.
   static inline bool isArmFamily(uint32_t ccId) noexcept { return ccId >= _kIdArmStart && ccId <= _kIdArmEnd; }
 
   //! \}

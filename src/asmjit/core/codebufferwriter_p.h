@@ -30,7 +30,7 @@
 ASMJIT_BEGIN_NAMESPACE
 
 //! \cond INTERNAL
-//! \addtogroup asmjit_core
+//! \addtogroup asmjit_assembler
 //! \{
 
 // ============================================================================

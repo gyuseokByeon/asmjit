@@ -189,7 +189,7 @@ if (NOT ASMJIT_NO_CUSTOM_FLAGS)
       -O2                      # [+] Favor speed over size.
       -Oi)                     # [+] Generate intrinsic functions.
   elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(GNU|Clang|AppleClang)$")
-    list(APPEND ASMJIT_PRIVATE_CFLAGS -Wall -Wextra)
+    list(APPEND ASMJIT_PRIVATE_CFLAGS -Wall -Wextra -Wconversion)
     list(APPEND ASMJIT_PRIVATE_CFLAGS -fno-math-errno)
     list(APPEND ASMJIT_PRIVATE_CFLAGS_REL -O2)
 
@@ -197,8 +197,10 @@ if (NOT ASMJIT_NO_CUSTOM_FLAGS)
       -fno-threadsafe-statics
       -fno-semantic-interposition)
 
+    # The following flags can save few bytes in the resulting binary.
     asmjit_detect_cflags(ASMJIT_PRIVATE_CFLAGS_REL
-      -fmerge-all-constants)
+      -fmerge-all-constants    # Merge all constants even if it violates ISO C++.
+      -fno-enforce-eh-specs)   # Don't enforce termination if noexcept function throws.
   endif()
 endif()
 
@@ -301,7 +303,13 @@ set(ASMJIT_SRC_LIST
   asmjit/core/datatypes.h
   asmjit/core/emitter.cpp
   asmjit/core/emitter.h
+  asmjit/core/emitterutils.cpp
+  asmjit/core/emitterutils_p.h
+  asmjit/core/errorhandler.cpp
+  asmjit/core/errorhandler.h
   asmjit/core/features.h
+  asmjit/core/formatter.cpp
+  asmjit/core/formatter.h
   asmjit/core/func.cpp
   asmjit/core/func.h
   asmjit/core/globals.cpp
@@ -312,8 +320,8 @@ set(ASMJIT_SRC_LIST
   asmjit/core/jitallocator.h
   asmjit/core/jitruntime.cpp
   asmjit/core/jitruntime.h
-  asmjit/core/logging.cpp
-  asmjit/core/logging.h
+  asmjit/core/logger.cpp
+  asmjit/core/logger.h
   asmjit/core/misc_p.h
   asmjit/core/operand.cpp
   asmjit/core/operand.h
@@ -364,6 +372,8 @@ set(ASMJIT_SRC_LIST
   asmjit/x86/x86emitter.h
   asmjit/x86/x86features.cpp
   asmjit/x86/x86features.h
+  asmjit/x86/x86formatter.cpp
+  asmjit/x86/x86formatter_p.h
   asmjit/x86/x86globals.h
   asmjit/x86/x86internal.cpp
   asmjit/x86/x86internal_p.h
@@ -372,8 +382,6 @@ set(ASMJIT_SRC_LIST
   asmjit/x86/x86instdb_p.h
   asmjit/x86/x86instapi.cpp
   asmjit/x86/x86instapi_p.h
-  asmjit/x86/x86logging.cpp
-  asmjit/x86/x86logging_p.h
   asmjit/x86/x86operand.cpp
   asmjit/x86/x86operand.h
   asmjit/x86/x86rapass.cpp
@@ -472,6 +480,15 @@ if (NOT ASMJIT_EMBED)
                         CFLAGS_DBG ${ASMJIT_PRIVATE_CFLAGS_DBG}
                         CFLAGS_REL ${ASMJIT_PRIVATE_CFLAGS_REL})
     endforeach()
+
+    if (NOT ASMJIT_NO_INTROSPECTION)
+      asmjit_add_target(asmjit_test_x86_instinfo TEST
+                        SOURCES    test/asmjit_test_x86_instinfo.cpp
+                        LIBRARIES  AsmJit::AsmJit
+                        CFLAGS     ${ASMJIT_PRIVATE_CFLAGS}
+                        CFLAGS_DBG ${ASMJIT_PRIVATE_CFLAGS_DBG}
+                        CFLAGS_REL ${ASMJIT_PRIVATE_CFLAGS_REL})
+    endif()
 
     if (NOT (ASMJIT_NO_BUILDER OR ASMJIT_NO_COMPILER))
       asmjit_add_target(asmjit_test_x86_cc TEST

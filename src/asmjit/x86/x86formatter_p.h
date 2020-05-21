@@ -21,11 +21,15 @@
 //    misrepresented as being the original software.
 // 3. This notice may not be removed or altered from any source distribution.
 
-#ifndef ASMJIT_X86_X86INSTAPI_P_H_INCLUDED
-#define ASMJIT_X86_X86INSTAPI_P_H_INCLUDED
+#ifndef ASMJIT_X86_X86FORMATTER_P_H_INCLUDED
+#define ASMJIT_X86_X86FORMATTER_P_H_INCLUDED
 
-#include "../core/inst.h"
-#include "../core/operand.h"
+#include "../core/api-config.h"
+#ifndef ASMJIT_NO_LOGGING
+
+#include "../core/formatter.h"
+#include "../core/string.h"
+#include "../x86/x86globals.h"
 
 ASMJIT_BEGIN_SUB_NAMESPACE(x86)
 
@@ -33,27 +37,44 @@ ASMJIT_BEGIN_SUB_NAMESPACE(x86)
 //! \addtogroup asmjit_x86
 //! \{
 
-namespace InstInternal {
+// ============================================================================
+// [asmjit::x86::FormatterInternal]
+// ============================================================================
 
-#ifndef ASMJIT_NO_TEXT
-Error instIdToString(uint32_t archId, uint32_t instId, String& output) noexcept;
-uint32_t stringToInstId(uint32_t archId, const char* s, size_t len) noexcept;
-#endif // !ASMJIT_NO_TEXT
+namespace FormatterInternal {
 
-#ifndef ASMJIT_NO_VALIDATION
-Error validate(uint32_t archId, const BaseInst& inst, const Operand_* operands, size_t opCount) noexcept;
-#endif // !ASMJIT_NO_VALIDATION
+Error formatFeature(
+  String& sb,
+  uint32_t featureId) noexcept;
 
-#ifndef ASMJIT_NO_INTROSPECTION
-Error queryRWInfo(uint32_t archId, const BaseInst& inst, const Operand_* operands, size_t opCount, InstRWInfo* out) noexcept;
-Error queryFeatures(uint32_t archId, const BaseInst& inst, const Operand_* operands, size_t opCount, BaseFeatures* out) noexcept;
-#endif // !ASMJIT_NO_INTROSPECTION
+Error formatRegister(
+  String& sb,
+  uint32_t flags,
+  const BaseEmitter* emitter,
+  uint32_t archId,
+  uint32_t regType,
+  uint32_t regId) noexcept;
 
-} // {InstInternal}
+Error formatOperand(
+  String& sb,
+  uint32_t flags,
+  const BaseEmitter* emitter,
+  uint32_t archId,
+  const Operand_& op) noexcept;
+
+Error formatInstruction(
+  String& sb,
+  uint32_t flags,
+  const BaseEmitter* emitter,
+  uint32_t archId,
+  const BaseInst& inst, const Operand_* operands, size_t opCount) noexcept;
+
+} // {FormatterInternal}
 
 //! \}
 //! \endcond
 
 ASMJIT_END_SUB_NAMESPACE
 
-#endif // ASMJIT_X86_X86INSTAPI_P_H_INCLUDED
+#endif // !ASMJIT_NO_LOGGING
+#endif // ASMJIT_X86_X86FORMATTER_P_H_INCLUDED

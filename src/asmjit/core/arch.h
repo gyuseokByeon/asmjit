@@ -29,13 +29,14 @@
 
 ASMJIT_BEGIN_NAMESPACE
 
-//! \addtogroup asmjit_core
+//! \addtogroup asmjit_arch_and_cpu
 //! \{
 
 // ============================================================================
 // [asmjit::ArchInfo]
 // ============================================================================
 
+//! Architecture information.
 class ArchInfo {
 public:
   union {
@@ -55,46 +56,53 @@ public:
 
   //! Architecture id.
   enum Id : uint32_t {
-    kIdNone  = 0,                        //!< No/Unknown architecture.
+    //! No/Unknown architecture.
+    kIdNone = 0,
 
-    // X86 architectures.
-    kIdX86   = 1,                        //!< X86 architecture (32-bit).
-    kIdX64   = 2,                        //!< X64 architecture (64-bit) (AMD64).
+    //! 32-bit X86 architecture.
+    kIdX86 = 1,
+    //! 64-bit X68 architecture also known as X64, X86_64, and AMD64.
+    kIdX64 = 2,
 
-    // ARM architectures.
-    kIdA32   = 3,                        //!< ARM 32-bit architecture (AArch32/ARM/THUMB).
-    kIdA64   = 4,                        //!< ARM 64-bit architecture (AArch64).
+    //! 32-bit ARM architecture also known as AArch32.
+    kIdArm32 = 3,
+    //! 64-bit ARM architecture also known as AArch64.
+    kIdArm64 = 4,
 
     //! Architecture detected at compile-time (architecture of the host).
     kIdHost  = ASMJIT_ARCH_X86 == 32 ? kIdX86 :
                ASMJIT_ARCH_X86 == 64 ? kIdX64 :
-               ASMJIT_ARCH_ARM == 32 ? kIdA32 :
-               ASMJIT_ARCH_ARM == 64 ? kIdA64 : kIdNone
+               ASMJIT_ARCH_ARM == 32 ? kIdArm32 :
+               ASMJIT_ARCH_ARM == 64 ? kIdArm64 : kIdNone
   };
 
   //! Architecture sub-type or execution mode.
   enum SubType : uint32_t {
-    kSubIdNone         = 0,              //!< Default mode (or no specific mode).
+    //! Baseline (or no specific mode).
+    kSubIdNone = 0,
 
-    // X86 sub-types.
-    kSubIdX86_AVX      = 1,              //!< Code generation uses AVX         by default (VEC instructions).
-    kSubIdX86_AVX2     = 2,              //!< Code generation uses AVX2        by default (VEC instructions).
-    kSubIdX86_AVX512   = 3,              //!< Code generation uses AVX-512F    by default (+32 vector regs).
-    kSubIdX86_AVX512VL = 4,              //!< Code generation uses AVX-512F-VL by default (+VL extensions).
+    //! Code generation uses AVX by default (VEC instructions).
+    kSubIdX86_AVX = 1,
+    //! Code generation uses AVX2 by default (VEC instructions).
+    kSubIdX86_AVX2 = 2,
+    //! Code generation uses AVX512_F by default (+32 vector regs).
+    kSubIdX86_AVX512 = 3,
+    //! Code generation uses AVX512_VL by default (+VL extensions).
+    kSubIdX86_AVX512VL = 4,
 
-    // ARM sub-types.
-    kSubIdA32_Thumb    = 8,              //!< THUMB|THUMBv2 sub-type (only ARM in 32-bit mode).
+    //! THUMB|THUMBv2 sub-type (only ARM in 32-bit mode).
+    kSubIdArm32_Thumb  = 8,
 
-#if   (ASMJIT_ARCH_X86) && defined(__AVX512VL__)
+#if   ASMJIT_ARCH_X86 && defined(__AVX512VL__)
     kSubIdHost = kSubIdX86_AVX512VL
-#elif (ASMJIT_ARCH_X86) && defined(__AVX512F__)
+#elif ASMJIT_ARCH_X86 && defined(__AVX512F__)
     kSubIdHost = kSubIdX86_AVX512
-#elif (ASMJIT_ARCH_X86) && defined(__AVX2__)
+#elif ASMJIT_ARCH_X86 && defined(__AVX2__)
     kSubIdHost = kSubIdX86_AVX2
-#elif (ASMJIT_ARCH_X86) && defined(__AVX__)
+#elif ASMJIT_ARCH_X86 && defined(__AVX__)
     kSubIdHost = kSubIdX86_AVX
-#elif (ASMJIT_ARCH_ARM == 32) && (defined(_M_ARMT) || defined(__thumb__) || defined(__thumb2__))
-    kSubIdHost = kSubIdA32_Thumb
+#elif ASMJIT_ARCH_ARM == 32 && (defined(_M_ARMT) || defined(__thumb__) || defined(__thumb2__))
+    kSubIdHost = kSubIdArm32_Thumb
 #else
     kSubIdHost = 0
 #endif
@@ -103,16 +111,21 @@ public:
   //! \name Construction & Destruction
   //! \{
 
+  //! Creates an architecture information initialized to none (see \ref kIdNone).
   inline ArchInfo() noexcept : _signature(0) {}
   inline ArchInfo(const ArchInfo& other) noexcept : _signature(other._signature) {}
   inline explicit ArchInfo(uint32_t type, uint32_t subType = kSubIdNone) noexcept { init(type, subType); }
   inline explicit ArchInfo(Globals::NoInit_) noexcept {}
 
+  //! Creates `\ref ArchInfo compatible with the host architecture.
   inline static ArchInfo host() noexcept { return ArchInfo(kIdHost, kSubIdHost); }
 
+  //! Tests whether the ArchInfo has been initialized with correct architecture.
   inline bool isInitialized() const noexcept { return _id != kIdNone; }
 
   ASMJIT_API void init(uint32_t type, uint32_t subType = kSubIdNone) noexcept;
+
+  //! Resets ArchInfo to default constructed state, which is \ref kIdNone architecture.
   inline void reset() noexcept { _signature = 0; }
 
   //! \}
@@ -135,14 +148,14 @@ public:
 
   //! Returns the architecture sub-id, see `SubType`.
   //!
-  //! X86 & X64
-  //! ---------
+  //! X86 Specific
+  //! ------------
   //!
   //! Architecture subtype describe the highest instruction-set level that can
   //! be used.
   //!
-  //! A32 & A64
-  //! ---------
+  //! ARM Specific
+  //! ------------
   //!
   //! Architecture mode means the instruction encoding to be used when generating
   //! machine code, thus mode can be used to force generation of THUMB and THUMBv2
@@ -170,7 +183,7 @@ public:
   //! \{
 
   static inline bool isX86Family(uint32_t archId) noexcept { return archId >= kIdX86 && archId <= kIdX64; }
-  static inline bool isArmFamily(uint32_t archId) noexcept { return archId >= kIdA32 && archId <= kIdA64; }
+  static inline bool isArmFamily(uint32_t archId) noexcept { return archId >= kIdArm32 && archId <= kIdArm64; }
 
   //! \}
 };
@@ -179,7 +192,7 @@ public:
 // [asmjit::ArchRegs]
 // ============================================================================
 
-//! Information about all architecture registers.
+//! Information about registers of a CPU architecture.
 struct ArchRegs {
   //! Register information and signatures indexed by `BaseReg::RegType`.
   RegInfo regInfo[BaseReg::kTypeMax + 1];
@@ -193,6 +206,7 @@ struct ArchRegs {
 // [asmjit::ArchUtils]
 // ============================================================================
 
+//! Architecture utilities.
 struct ArchUtils {
   ASMJIT_API static Error typeIdToRegInfo(uint32_t archId, uint32_t& typeIdInOut, RegInfo& regInfo) noexcept;
 };

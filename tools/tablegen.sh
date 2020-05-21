@@ -1,3 +1,3 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
-node ./tablegen-x86.js
+node ./tablegen-x86.js $@

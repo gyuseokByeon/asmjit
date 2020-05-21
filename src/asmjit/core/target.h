@@ -141,9 +141,13 @@ public:
   inline uint32_t fastCallConv() const noexcept { return _fastCallConv; }
   inline void setFastCallConv(uint32_t cc) noexcept { _fastCallConv = uint8_t(cc); }
 
+  //! Tests whether this CodeInfo has a base address set.
   inline bool hasBaseAddress() const noexcept { return _baseAddress != Globals::kNoBaseAddress; }
+  //! Returns the base address or \ref Globals::kNoBaseAddress if it's not set.
   inline uint64_t baseAddress() const noexcept { return _baseAddress; }
+  //! Sets base address to `p`.
   inline void setBaseAddress(uint64_t p) noexcept { _baseAddress = p; }
+  //! Resets base address (implicitly sets it to \ref Globals::kNoBaseAddress).
   inline void resetBaseAddress() noexcept { _baseAddress = Globals::kNoBaseAddress; }
 
   //! \}

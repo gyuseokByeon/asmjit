@@ -25,6 +25,7 @@
 #define ASMJIT_CORE_CODEHOLDER_H_INCLUDED
 
 #include "../core/arch.h"
+#include "../core/errorhandler.h"
 #include "../core/datatypes.h"
 #include "../core/operand.h"
 #include "../core/string.h"
@@ -56,58 +57,14 @@ class Logger;
 
 //! Align mode.
 enum AlignMode : uint32_t {
-  kAlignCode  = 0,                       //!< Align executable code.
-  kAlignData  = 1,                       //!< Align non-executable code.
-  kAlignZero  = 2,                       //!< Align by a sequence of zeros.
-  kAlignCount = 3                        //!< Count of alignment modes.
-};
-
-// ============================================================================
-// [asmjit::ErrorHandler]
-// ============================================================================
-
-//! Error handler can be used to override the default behavior of error handling
-//! available to all classes that inherit `BaseEmitter`.
-//!
-//! Override `ErrorHandler::handleError()` to implement your own error handler.
-class ASMJIT_VIRTAPI ErrorHandler {
-public:
-  ASMJIT_BASE_CLASS(ErrorHandler)
-
-  // --------------------------------------------------------------------------
-  // [Construction / Destruction]
-  // --------------------------------------------------------------------------
-
-  //! Creates a new `ErrorHandler` instance.
-  ASMJIT_API ErrorHandler() noexcept;
-  //! Destroys the `ErrorHandler` instance.
-  ASMJIT_API virtual ~ErrorHandler() noexcept;
-
-  // --------------------------------------------------------------------------
-  // [Handle Error]
-  // --------------------------------------------------------------------------
-
-  //! Error handler (must be reimplemented).
-  //!
-  //! Error handler is called after an error happened and before it's propagated
-  //! to the caller. There are multiple ways how the error handler can be used:
-  //!
-  //! 1. User-based error handling without throwing exception or using C's
-  //!    `longjmp()`. This is for users that don't use exceptions and want
-  //!    customized error handling.
-  //!
-  //! 2. Throwing an exception. AsmJit doesn't use exceptions and is completely
-  //!    exception-safe, but you can throw exception from your error handler if
-  //!    this way is the preferred way of handling errors in your project.
-  //!
-  //! 3. Using plain old C's `setjmp()` and `longjmp()`. Asmjit always puts
-  //!    `BaseEmitter` to a consistent state before calling `handleError()`
-  //!    so `longjmp()` can be used without any issues to cancel the code
-  //!    generation if an error occurred. There is no difference between
-  //!    exceptions and `longjmp()` from AsmJit's perspective, however,
-  //!    never jump outside of `CodeHolder` and `BaseEmitter` scope as you
-  //!    would leak memory.
-  virtual void handleError(Error err, const char* message, BaseEmitter* origin) = 0;
+  //! Align executable code.
+  kAlignCode = 0,
+  //! Align non-executable code.
+  kAlignData = 1,
+  //! Align by a sequence of zeros.
+  kAlignZero = 2,
+  //! Count of alignment modes.
+  kAlignCount = 3
 };
 
 // ============================================================================
@@ -125,6 +82,7 @@ struct CodeBuffer {
   //! Buffer flags.
   uint32_t _flags;
 
+  //! Code buffer flags.
   enum Flags : uint32_t {
     //! Buffer is external (not allocated by asmjit).
     kFlagIsExternal = 0x00000001u,
@@ -135,11 +93,12 @@ struct CodeBuffer {
   //! \name Overloaded Operators
   //! \{
 
+  //! Returns a referebce to the byte at the given `index`.
   inline uint8_t& operator[](size_t index) noexcept {
     ASMJIT_ASSERT(index < _size);
     return _data[index];
   }
-
+  //! \overload
   inline const uint8_t& operator[](size_t index) const noexcept {
     ASMJIT_ASSERT(index < _size);
     return _data[index];
@@ -150,18 +109,35 @@ struct CodeBuffer {
   //! \name Accessors
   //! \{
 
+  //! Returns code buffer flags, see \ref Flags.
   inline uint32_t flags() const noexcept { return _flags; }
+  //! Tests whether the code buffer has the given `flag` set.
   inline bool hasFlag(uint32_t flag) const noexcept { return (_flags & flag) != 0; }
 
+  //! Tests whether the data in this code buffer is allocated (non-null).
   inline bool isAllocated() const noexcept { return _data != nullptr; }
+
+  //! Tests whether this code buffer has a fixed size.
+  //!
+  //! Fixed size means that the code buffer is fixed and cannot grow.
   inline bool isFixed() const noexcept { return hasFlag(kFlagIsFixed); }
+
+  //! Tests whether the data in this code buffer is external.
+  //!
+  //! External data can only be provided by users, it's never used by AsmJit.
   inline bool isExternal() const noexcept { return hasFlag(kFlagIsExternal); }
 
+  //! Returns the pointer to the data the buffer references.
   inline uint8_t* data() noexcept { return _data; }
+  //! \overload
   inline const uint8_t* data() const noexcept { return _data; }
 
+  //! Tests whether the code buffer is empty.
   inline bool empty() const noexcept { return !_size; }
+
+  //! Returns the size of the data.
   inline size_t size() const noexcept { return _size; }
+  //! Returns the capacity of the data.
   inline size_t capacity() const noexcept { return _capacity; }
 
   //! \}
@@ -204,31 +180,48 @@ public:
 
   //! Section flags.
   enum Flags : uint32_t {
-    kFlagExec        = 0x00000001u,      //!< Executable (.text sections).
-    kFlagConst       = 0x00000002u,      //!< Read-only (.text and .data sections).
-    kFlagZero        = 0x00000004u,      //!< Zero initialized by the loader (BSS).
-    kFlagInfo        = 0x00000008u,      //!< Info / comment flag.
-    kFlagImplicit    = 0x80000000u       //!< Section created implicitly and can be deleted by `Target`.
+    //! Executable (.text sections).
+    kFlagExec = 0x00000001u,
+    //! Read-only (.text and .data sections).
+    kFlagConst = 0x00000002u,
+    //! Zero initialized by the loader (BSS).
+    kFlagZero = 0x00000004u,
+    //! Info / comment flag.
+    kFlagInfo = 0x00000008u,
+    //! Section created implicitly and can be deleted by \ref Target.
+    kFlagImplicit = 0x80000000u
   };
 
   //! \name Accessors
   //! \{
 
+  //! Returns the section id.
   inline uint32_t id() const noexcept { return _id; }
+  //! Returns the section name, as a null terminated string.
   inline const char* name() const noexcept { return _name.str; }
 
+  //! Returns the section data.
   inline uint8_t* data() noexcept { return _buffer.data(); }
+  //! \overload
   inline const uint8_t* data() const noexcept { return _buffer.data(); }
 
+  //! Returns the section flags, see \ref Flags.
   inline uint32_t flags() const noexcept { return _flags; }
+  //! Tests whether the section has the given `flag`.
   inline bool hasFlag(uint32_t flag) const noexcept { return (_flags & flag) != 0; }
+  //! Adds `flags` to the section flags.
   inline void addFlags(uint32_t flags) noexcept { _flags |= flags; }
+  //! Removes `flags` from the section flags.
   inline void clearFlags(uint32_t flags) noexcept { _flags &= ~flags; }
 
+  //! Returns the minimum section alignment
   inline uint32_t alignment() const noexcept { return _alignment; }
+  //! Sets the minimum section alignment
   inline void setAlignment(uint32_t alignment) noexcept { _alignment = alignment; }
 
+  //! Returns the section offset, relative to base.
   inline uint64_t offset() const noexcept { return _offset; }
+  //! Set the section offset.
   inline void setOffset(uint64_t offset) noexcept { _offset = offset; }
 
   //! Returns the virtual size of the section.
@@ -277,46 +270,73 @@ struct LabelLink {
 // [asmjit::Expression]
 // ============================================================================
 
+//! Expression node that can reference constants, labels, and another expressions.
 struct Expression {
+  //! Operation type.
   enum OpType : uint8_t {
+    //! Addition.
     kOpAdd = 0,
+    //! Subtraction.
     kOpSub = 1,
+    //! Multiplication
     kOpMul = 2,
+    //! Logical left shift.
     kOpSll = 3,
+    //! Logical right shift.
     kOpSrl = 4,
+    //! Arithmetic right shift.
     kOpSra = 5
   };
 
+  //! Type of \ref Value.
   enum ValueType : uint8_t {
+    //! No value or invalid.
     kValueNone = 0,
+    //! Value is 64-bit unsigned integer (constant).
     kValueConstant = 1,
+    //! Value is \ref LabelEntry, which references a \ref Label.
     kValueLabel = 2,
+    //! Value is \ref Expression
     kValueExpression = 3
   };
 
+  //! Expression value.
   union Value {
+    //! Constant.
     uint64_t constant;
+    //! Pointer to another expression.
     Expression* expression;
+    //! Poitner to \ref LabelEntry.
     LabelEntry* label;
   };
 
+  //! Operation type.
   uint8_t opType;
+  //! Value types of \ref value.
   uint8_t valueType[2];
+  //! Reserved for future use, should be initialized to zero.
   uint8_t reserved[5];
+  //! Expression left and right values.
   Value value[2];
 
+  //! Resets the whole expression.
+  //!
+  //! Changes both values to \ref kValueNone.
   inline void reset() noexcept { memset(this, 0, sizeof(*this)); }
 
+  //! Sets the value type at `index` to \ref kValueConstant and its content to `constant`.
   inline void setValueAsConstant(size_t index, uint64_t constant) noexcept {
     valueType[index] = kValueConstant;
     value[index].constant = constant;
   }
 
-  inline void setValueAsLabel(size_t index, LabelEntry* label) noexcept {
+  //! Sets the value type at `index` to \ref kValueLabel and its content to `labelEntry`.
+  inline void setValueAsLabel(size_t index, LabelEntry* labelEntry) noexcept {
     valueType[index] = kValueLabel;
-    value[index].label = label;
+    value[index].label = labelEntry;
   }
 
+  //! Sets the value type at `index` to \ref kValueExpression and its content to `expression`.
   inline void setValueAsExpression(size_t index, Expression* expression) noexcept {
     valueType[index] = kValueLabel;
     value[index].expression = expression;
@@ -547,14 +567,16 @@ public:
 // [asmjit::CodeHolder]
 // ============================================================================
 
-//! Contains basic information about the target architecture plus its settings,
-//! and holds code & data (including sections, labels, and relocation information).
-//! CodeHolder can store both binary and intermediate representation of assembly,
-//! which can be generated by `BaseAssembler` and/or `BaseBuilder`.
+//! Contains basic information about the target architecture and its options.
 //!
-//! \note `CodeHolder` has ability to attach an `ErrorHandler`, however, the
-//! error handler is not triggered by `CodeHolder` itself, it's only used by
-//! emitters attached to `CodeHolder`.
+//! In addition, it holds assembled code & data (including sections, labels, and
+//! relocation information). `CodeHolder` can store both binary and intermediate
+//! representation of assembly, which can be generated by \ref BaseAssembler,
+//! \ref BaseBuilder, and \ref BaseCompiler
+//!
+//! \note `CodeHolder` has an ability to attach an \ref ErrorHandler, however,
+//! the error handler is not triggered by `CodeHolder` itself, it's instead
+//! propagated to all emitters that attach to it.
 class CodeHolder {
 public:
   ASMJIT_NONCOPYABLE(CodeHolder)
@@ -622,6 +644,12 @@ public:
   //! \name Allocators
   //! \{
 
+  //! Returns the allocator that the `CodeHolder` uses.
+  //!
+  //! \note This should be only used for AsmJit's purposes. Code holder uses
+  //! arena allocator to allocate everything, so anything allocated through
+  //! this allocator will be invalidated by \ref CodeHolder::reset() or by
+  //! CodeHolder's destructor.
   inline ZoneAllocator* allocator() const noexcept { return const_cast<ZoneAllocator*>(&_allocator); }
 
   //! \}
@@ -659,7 +687,7 @@ public:
 
   //! Tests whether a static base-address is set.
   inline bool hasBaseAddress() const noexcept { return _codeInfo.hasBaseAddress(); }
-  //! Returns a static base-address (uint64_t).
+  //! Returns a static base-address or \ref Globals::kNoBaseAddress, if not set.
   inline uint64_t baseAddress() const noexcept { return _codeInfo.baseAddress(); }
 
   //! \}
@@ -667,20 +695,20 @@ public:
   //! \name Logging & Error Handling
   //! \{
 
-  //! Returns the attached logger.
+  //! Returns the attached logger, see \ref Logger.
   inline Logger* logger() const noexcept { return _logger; }
   //! Attaches a `logger` to CodeHolder and propagates it to all attached emitters.
   ASMJIT_API void setLogger(Logger* logger) noexcept;
   //! Resets the logger to none.
   inline void resetLogger() noexcept { setLogger(nullptr); }
 
-  //! Tests whether the global error handler is attached.
+  //! Tests whether the CodeHolder has an attached error handler, see \ref ErrorHandler.
   inline bool hasErrorHandler() const noexcept { return _errorHandler != nullptr; }
-  //! Returns the global error handler.
+  //! Returns the attached error handler.
   inline ErrorHandler* errorHandler() const noexcept { return _errorHandler; }
-  //! Sets the global error handler.
+  //! Attach an error handler to this `CodeHolder`.
   inline void setErrorHandler(ErrorHandler* handler) noexcept { _errorHandler = handler; }
-  //! Resets the global error handler to none.
+  //! Resets the error handler to none.
   inline void resetErrorHandler() noexcept { setErrorHandler(nullptr); }
 
   //! \}
@@ -688,7 +716,16 @@ public:
   //! \name Code Buffer
   //! \{
 
+  //! Makes sure that at least `n` bytes can be added to CodeHolder's buffer `cb`.
+  //!
+  //! \note The buffer `cb` must be managed by `CodeHolder` - otherwise the
+  //! behavior of the function is undefined.
   ASMJIT_API Error growBuffer(CodeBuffer* cb, size_t n) noexcept;
+
+  //! Reserves the size of `cb` to at least `n` bytes.
+  //!
+  //! \note The buffer `cb` must be managed by `CodeHolder` - otherwise the
+  //! behavior of the function is undefined.
   ASMJIT_API Error reserveBuffer(CodeBuffer* cb, size_t n) noexcept;
 
   //! \}
@@ -719,7 +756,7 @@ public:
 
   //! Returns '.text' section (section that commonly represents code).
   //!
-  //! \note Text section is always the first section in `CodeHolder::sections()` array.
+  //! \note Text section is always the first section in \ref CodeHolder::sections() array.
   inline Section* textSection() const noexcept { return _sections[0]; }
 
   //! Tests whether '.addrtab' section exists.
@@ -825,17 +862,37 @@ public:
   //! Returns `Error`, does not report error to `ErrorHandler`.
   ASMJIT_API Error newLabelEntry(LabelEntry** entryOut) noexcept;
 
-  //! Creates a new named label label-type `type`.
+  //! Creates a new named \ref LabelEntry of the given label `type`.
   //!
-  //! Returns `Error`, does not report a possible error to `ErrorHandler`.
+  //! \param entryOut Where to store the created \ref LabelEntry.
+  //! \param name The name of the label.
+  //! \param nameSize The length of `name` argument, or `SIZE_MAX` if `name` is
+  //!        a null terminated string, which means that the `CodeHolder` will
+  //!        use `strlen()` to determine the length.
+  //! \param type The type of the label to create, see \ref Label::LabelType.
+  //! \param parentId Parent id of a local label, otherwise it must be
+  //!        \ref Globals::kInvalidId.
+  //!
+  //! \retval Always returns \ref Error, does not report a possible error to
+  //!         the attached \ref ErrorHandler.
+  //!
+  //! AsmJit has a support for local labels (\ref Label::kTypeLocal) which
+  //! require a parent label id (parentId). The names of local labels can
+  //! conflict with names of other local labels that have a different parent.
   ASMJIT_API Error newNamedLabelEntry(LabelEntry** entryOut, const char* name, size_t nameSize, uint32_t type, uint32_t parentId = Globals::kInvalidId) noexcept;
 
-  //! Returns a label id by name.
-  ASMJIT_API uint32_t labelIdByName(const char* name, size_t nameSize = SIZE_MAX, uint32_t parentId = Globals::kInvalidId) noexcept;
-
+  //! Returns a label by name.
+  //!
+  //! If the named label doesn't a default constructed \ref Label is returned,
+  //! which has its id set to \ref Globals::kInvalidId.
   inline Label labelByName(const char* name, size_t nameSize = SIZE_MAX, uint32_t parentId = Globals::kInvalidId) noexcept {
     return Label(labelIdByName(name, nameSize, parentId));
   }
+
+  //! Returns a label id by name.
+  //!
+  //! If the named label doesn't exist \ref Globals::kInvalidId is returned.
+  ASMJIT_API uint32_t labelIdByName(const char* name, size_t nameSize = SIZE_MAX, uint32_t parentId = Globals::kInvalidId) noexcept;
 
   //! Tests whether there are any unresolved label links.
   inline bool hasUnresolvedLinks() const noexcept { return _unresolvedLinkCount != 0; }

@@ -26,7 +26,7 @@
 
 #include "../core/arch.h"
 #include "../core/jitallocator.h"
-#include "../core/osutils.h"
+#include "../core/osutils_p.h"
 #include "../core/support.h"
 #include "../core/virtmem.h"
 #include "../core/zone.h"
