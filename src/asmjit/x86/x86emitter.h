@@ -322,39 +322,46 @@ struct EmitterExplicitT {
   //! Embeds 64-bit integer data.
   inline Error dq(uint64_t x, size_t repeatCount = 1) { return _emitter()->embedUInt64(x, repeatCount); }
 
-  //! \cond DEPRECATED
-  inline Error ASMJIT_DEPRECATED("Use embedInt8() instead of dint8()")
-               dint8(int8_t x) { return _emitter()->embed(&x, sizeof(int8_t)); }
-  inline Error ASMJIT_DEPRECATED("Use embedUInt8() instead of duint8()")
-               duint8(uint8_t x) { return _emitter()->embed(&x, sizeof(uint8_t)); }
+#ifndef ASMJIT_NO_DEPRECATED
+  ASMJIT_DEPRECATED("Use embedInt8() instead of dint8()")
+  inline Error dint8(int8_t x) { return _emitter()->embed(&x, sizeof(int8_t)); }
 
-  inline Error ASMJIT_DEPRECATED("Use embedInt16() instead of dint16()")
-               dint16(int16_t x) { return _emitter()->embed(&x, sizeof(int16_t)); }
-  inline Error ASMJIT_DEPRECATED("Use embedUInt16() instead of duint16()")
-               duint16(uint16_t x) { return _emitter()->embed(&x, sizeof(uint16_t)); }
+  ASMJIT_DEPRECATED("Use embedUInt8() instead of duint8()")
+  inline Error duint8(uint8_t x) { return _emitter()->embed(&x, sizeof(uint8_t)); }
 
-  inline Error ASMJIT_DEPRECATED("Use embedInt32() instead of dint32()")
-               dint32(int32_t x) { return _emitter()->embed(&x, sizeof(int32_t)); }
-  inline Error ASMJIT_DEPRECATED("Use embedUInt32() instead of duint32()")
-               duint32(uint32_t x) { return _emitter()->embed(&x, sizeof(uint32_t)); }
+  ASMJIT_DEPRECATED("Use embedInt16() instead of dint16()")
+  inline Error dint16(int16_t x) { return _emitter()->embed(&x, sizeof(int16_t)); }
 
-  inline Error ASMJIT_DEPRECATED("Use embedInt64() instead of dint64()")
-               dint64(int64_t x) { return _emitter()->embed(&x, sizeof(int64_t)); }
-  inline Error ASMJIT_DEPRECATED("Use embedUInt64() instead of duint64()")
-               duint64(uint64_t x) { return _emitter()->embed(&x, sizeof(uint64_t)); }
+  ASMJIT_DEPRECATED("Use embedUInt16() instead of duint16()")
+  inline Error duint16(uint16_t x) { return _emitter()->embed(&x, sizeof(uint16_t)); }
 
-  inline Error ASMJIT_DEPRECATED("Use embedFloat() instead of float()")
-               dfloat(float x) { return _emitter()->embed(&x, sizeof(float)); }
-  inline Error ASMJIT_DEPRECATED("Use embedDouble() instead of ddouble()")
-               ddouble(double x) { return _emitter()->embed(&x, sizeof(double)); }
+  ASMJIT_DEPRECATED("Use embedInt32() instead of dint32()")
+  inline Error dint32(int32_t x) { return _emitter()->embed(&x, sizeof(int32_t)); }
 
-  inline Error ASMJIT_DEPRECATED("Use embed[U]IntN() or embed[Float|Double]() instead of dmm()")
-               dmm(const Data64& x) { return _emitter()->embed(&x, sizeof(Data64)); }
-  inline Error ASMJIT_DEPRECATED("Use embed[U]IntN() or embed[Float|Double]() instead of dxmm()")
-               dxmm(const Data128& x) { return _emitter()->embed(&x, sizeof(Data128)); }
-  inline Error ASMJIT_DEPRECATED("Use embed[U]IntN() or embed[Float|Double]() instead of dymm()")
-               dymm(const Data256& x) { return _emitter()->embed(&x, sizeof(Data256)); }
-  //! \endcond
+  ASMJIT_DEPRECATED("Use embedUInt32() instead of duint32()")
+  inline Error duint32(uint32_t x) { return _emitter()->embed(&x, sizeof(uint32_t)); }
+
+  ASMJIT_DEPRECATED("Use embedInt64() instead of dint64()")
+  inline Error dint64(int64_t x) { return _emitter()->embed(&x, sizeof(int64_t)); }
+
+  ASMJIT_DEPRECATED("Use embedUInt64() instead of duint64()")
+  inline Error duint64(uint64_t x) { return _emitter()->embed(&x, sizeof(uint64_t)); }
+
+  ASMJIT_DEPRECATED("Use embedFloat() instead of float()")
+  inline Error dfloat(float x) { return _emitter()->embed(&x, sizeof(float)); }
+
+  ASMJIT_DEPRECATED("Use embedDouble() instead of ddouble()")
+  inline Error ddouble(double x) { return _emitter()->embed(&x, sizeof(double)); }
+
+  ASMJIT_DEPRECATED("Use embed[U]IntN() or embed[Float|Double]() instead of dmm()")
+  inline Error dmm(const Data64& x) { return _emitter()->embed(&x, 8); }
+
+  ASMJIT_DEPRECATED("Use embed[U]IntN() or embed[Float|Double]() instead of dxmm()")
+  inline Error dxmm(const Data128& x) { return _emitter()->embed(&x, 16); }
+
+  ASMJIT_DEPRECATED("Use embed[U]IntN() or embed[Float|Double]() instead of dymm()")
+  inline Error dymm(const Data256& x) { return _emitter()->embed(&x, 32); }
+#endif // !ASMJIT_NO_DEPRECATED
 
   //! Adds data in a given structure instance to the CodeBuffer.
   template<typename T>

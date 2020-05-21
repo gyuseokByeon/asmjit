@@ -319,29 +319,6 @@ public:
 
   ASMJIT_API Error padEnd(size_t n, char c = ' ') noexcept;
 
-  //! \cond DEPRECATED
-  inline Error ASMJIT_DEPRECATED("Use assign() instead of assignString()")
-               assignString(const char* data, size_t size = SIZE_MAX) noexcept {
-    return assign(data, size);
-  }
-
-  inline Error ASMJIT_DEPRECATED("Use assign() instead of assignChar()")
-               assignChar(char c) noexcept {
-    return assign(c);
-  }
-
-  inline Error ASMJIT_DEPRECATED("Use append() instead of appendString()")
-               appendString(const char* data, size_t size = SIZE_MAX) noexcept {
-    return append(data, size);
-  }
-
-  inline Error ASMJIT_DEPRECATED("Use append() instead of appendChar()")
-               appendChar(char c) noexcept {
-    return append(c);
-  }
-
-  //! \endcond
-
   //! Truncate the string length into `newSize`.
   ASMJIT_API Error truncate(size_t newSize) noexcept;
 
@@ -370,6 +347,20 @@ public:
   }
 
   //! \}
+
+#ifndef ASMJIT_NO_DEPRECATED
+  ASMJIT_DEPRECATED("Use assign() instead of assignString()")
+  inline Error assignString(const char* data, size_t size = SIZE_MAX) noexcept { return assign(data, size); }
+
+  ASMJIT_DEPRECATED("Use assign() instead of assignChar()")
+  inline Error assignChar(char c) noexcept { return assign(c); }
+
+  ASMJIT_DEPRECATED("Use append() instead of appendString()")
+  inline Error appendString(const char* data, size_t size = SIZE_MAX) noexcept { return append(data, size); }
+
+  ASMJIT_DEPRECATED("Use append() instead of appendChar()")
+  inline Error appendChar(char c) noexcept { return append(c); }
+#endif // !ASMJIT_NO_DEPRECATED
 };
 
 // ============================================================================

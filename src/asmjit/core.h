@@ -1221,8 +1221,13 @@ namespace asmjit {
 //!
 //! ### Query API
 //!
-//! The instruction query API is provided by \ref InstAPI namespace. The example
-//! below illustrates how RWInfo works:
+//! The instruction query API is provided by \ref InstAPI namespace.
+//!
+//! TODO: Missing documentation
+//!
+//! ### Validation API
+//!
+//! TODO: Missing documentation
 
 
 // ============================================================================
@@ -1481,7 +1486,7 @@ namespace asmjit {
 // [Deprecated]
 // ============================================================================
 
-//! \cond DEPRECATED
+#ifndef ASMJIT_NO_DEPRECATED
 namespace asmjit {
 
 ASMJIT_DEPRECATED("Use InvokeNode instead of FuncCallNode")
@@ -1490,6 +1495,6 @@ typedef InvokeNode FuncCallNode;
 namespace Logging { using namespace Formatter; }
 
 } // {asmjit}
-//! \endcond
+#endif // !ASMJIT_NO_DEPRECATED
 
 #endif // ASMJIT_CORE_H_INCLUDED

@@ -95,9 +95,9 @@ public:
     return true;
   }
 
-  //! Returns all features as \ref BitWord array.
+  //! Returns all features as array of bitwords (see \ref Support::BitWord).
   inline BitWord* bits() noexcept { return _bits; }
-  //! Returns all features as \ref BitWord array (const).
+  //! Returns all features as array of bitwords (const).
   inline const BitWord* bits() const noexcept { return _bits; }
 
   //! Returns the number of BitWords returned by \ref bits().

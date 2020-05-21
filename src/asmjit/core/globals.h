@@ -261,7 +261,7 @@ enum ErrorCode : uint32_t {
   kErrorLabelNameTooLong,
   //! Label must always be local if it's anonymous (without a name).
   kErrorInvalidLabelName,
-  //! Parent id passed to \ref CodeHolder::newNamedLabelId() was invalid.
+  //! Parent id passed to \ref CodeHolder::newNamedLabelEntry() was invalid.
   kErrorInvalidParentLabel,
   //! Parent id specified for a non-local (global) label.
   kErrorNonLocalLabelCannotHaveParent,

@@ -364,8 +364,6 @@ public:
   //! \{
 
   //! Rename the given virtual register `reg` to a formatted string `fmt`.
-  //!
-  //! \note Only new name will appear in the logger.
   ASMJIT_API void rename(const BaseReg& reg, const char* fmt, ...);
 
   //! \}
@@ -387,9 +385,12 @@ public:
 
   //! \}
 
-  // TODO [DEPRECATED]: These should be removed, they have no effect.
-  inline void alloc(BaseReg& reg) { DebugUtils::unused(reg); }
-  inline void spill(BaseReg& reg) { DebugUtils::unused(reg); }
+#ifndef ASMJIT_NO_DEPRECATED
+  ASMJIT_DEPRECATED("alloc() has no effect, it will be removed in the future")
+  inline void alloc(BaseReg&) {}
+  ASMJIT_DEPRECATED("spill() has no effect, it will be removed in the future")
+  inline void spill(BaseReg&) {}
+#endif // !ASMJIT_NO_DEPRECATED
 
   //! \name Events
   //! \{

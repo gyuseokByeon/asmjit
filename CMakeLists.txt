@@ -250,6 +250,7 @@ foreach(build_option ASMJIT_STATIC
                      ASMJIT_BUILD_X86
                      #ASMJIT_BUILD_ARM
                      ASMJIT_BUILD_A64
+                     ASMJIT_NO_DEPRECATED
                      ASMJIT_NO_JIT
                      ASMJIT_NO_LOGGING
                      ASMJIT_NO_BUILDER

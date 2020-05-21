@@ -40,9 +40,11 @@ static void printInfo(uint32_t archId, const BaseInst& inst, const Operand_* ope
   sb.append("Operands:\n");
   for (uint32_t i = 0; i < rw.opCount(); i++) {
     const OpRWInfo& op = rw.operand(i);
-    const char* rw = op.isReadOnly() ? "R" : op.isWriteOnly() ? "W" : "X";
+    const char* rw = op.isReadOnly() ? "R" :
+                     op.isWriteOnly() ? "W" :
+                     op.isReadWrite() ? "X" : "_";
 
-    sb.appendFormat("  [%u] RW=%s ReadBytes=%016llX WriteBytes=%016llX %016llX",
+    sb.appendFormat("  [%u] RW=%s Read=%016llX Write=%016llX Extend=%016llX",
                     i, rw, op.readByteMask(), op.writeByteMask(), op.extendByteMask());
     sb.append("\n");
   }
@@ -91,11 +93,11 @@ int main() {
 
   printInfoSimple(archId,
                   x86::Inst::kIdPextrw,
-                  x86::eax, x86::xmm1);
+                  x86::eax, x86::xmm1, imm(0));
 
   printInfoSimple(archId,
                   x86::Inst::kIdPextrw,
-                  x86::ptr(rax), x86::xmm1);
+                  x86::ptr(rax), x86::xmm1, imm(0));
 
   printInfoSimple(archId,
                   x86::Inst::kIdVaddpd,

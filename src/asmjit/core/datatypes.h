@@ -26,18 +26,16 @@
 
 #include "../core/globals.h"
 
-ASMJIT_BEGIN_NAMESPACE
+#ifndef ASMJIT_NO_DEPRECATED
 
-//! \cond DEPRECATED
-//! \addtogroup asmjit_utilities
-//! \{
+ASMJIT_BEGIN_NAMESPACE
 
 // ============================================================================
 // [asmjit::Data64]
 // ============================================================================
 
 //! 64-bit data useful for creating SIMD constants.
-union ASMJIT_DEPRECATED("Data64 is deprecated and will be removed in the future") Data64 {
+union ASMJIT_DEPRECATED_STRUCT("Data64 is deprecated and will be removed in the future") Data64 {
   //! Array of eight 8-bit signed integers.
   int8_t sb[8];
   //! Array of eight 8-bit unsigned integers.
@@ -304,7 +302,7 @@ union ASMJIT_DEPRECATED("Data64 is deprecated and will be removed in the future"
 // ============================================================================
 
 //! 128-bit data useful for creating SIMD constants.
-union ASMJIT_DEPRECATED("Data128 is deprecated and will be removed in the future") Data128 {
+union ASMJIT_DEPRECATED_STRUCT("Data128 is deprecated and will be removed in the future") Data128 {
   //! Array of sixteen 8-bit signed integers.
   int8_t sb[16];
   //! Array of sixteen 8-bit unsigned integers.
@@ -649,7 +647,7 @@ union ASMJIT_DEPRECATED("Data128 is deprecated and will be removed in the future
 // ============================================================================
 
 //! 256-bit data useful for creating SIMD constants.
-union ASMJIT_DEPRECATED("Data256 is deprecated and will be removed in the future") Data256 {
+union ASMJIT_DEPRECATED_STRUCT("Data256 is deprecated and will be removed in the future") Data256 {
   //! Array of thirty two 8-bit signed integers.
   int8_t sb[32];
   //! Array of thirty two 8-bit unsigned integers.
@@ -1067,9 +1065,7 @@ union ASMJIT_DEPRECATED("Data256 is deprecated and will be removed in the future
   //! \}
 };
 
-//! \}
-//! \endcond
-
 ASMJIT_END_NAMESPACE
 
+#endif // !ASMJIT_NO_DEPRECATED
 #endif // ASMJIT_CORE_DATATYPES_H_INCLUDED

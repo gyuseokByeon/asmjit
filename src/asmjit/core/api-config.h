@@ -75,6 +75,7 @@
 // (like BaseCompiler).
 //
 // AsmJit features are enabled by default.
+// #define ASMJIT_NO_DEPRECATED      // Disable deprecated API (won't be provided).
 // #define ASMJIT_NO_BUILDER         // Disable Builder (completely).
 // #define ASMJIT_NO_COMPILER        // Disable Compiler (completely).
 // #define ASMJIT_NO_JIT             // Disable JIT memory manager and JitRuntime.
@@ -221,20 +222,14 @@
 // [asmjit::Build - Globals - C++ Compiler and Features Detection]
 // ============================================================================
 
-#define ASMJIT_CXX_CLANG 0
 #define ASMJIT_CXX_GNU   0
-#define ASMJIT_CXX_INTEL 0
-#define ASMJIT_CXX_MSC   0
-#define ASMJIT_CXX_MAKE_VER(MAJOR, MINOR, PATCH) ((MAJOR) * 10000000 + (MINOR) * 100000 + (PATCH))
+#define ASMJIT_CXX_MAKE_VER(MAJOR, MINOR) ((MAJOR) * 10000000 + (MINOR) * 100000 + (PATCH))
 
 // Intel Compiler [pretends to be GNU or MSC, so it must be checked first]:
 //   - https://software.intel.com/en-us/articles/c0x-features-supported-by-intel-c-compiler
 //   - https://software.intel.com/en-us/articles/c14-features-supported-by-intel-c-compiler
 //   - https://software.intel.com/en-us/articles/c17-features-supported-by-intel-c-compiler
 #if defined(__INTEL_COMPILER)
-
-  #undef ASMJIT_CXX_INTEL
-  #define ASMJIT_CXX_INTEL ASMJIT_CXX_MAKE_VER(__INTEL_COMPILER / 100, (__INTEL_COMPILER / 10) % 10, __INTEL_COMPILER % 10)
 
 // MSC Compiler:
 //   - https://msdn.microsoft.com/en-us/library/hh567368.aspx
@@ -247,54 +242,24 @@
 //   - 19.10.0 == VS2017
 #elif defined(_MSC_VER) && defined(_MSC_FULL_VER)
 
-  #undef ASMJIT_CXX_MSC
-  #if _MSC_VER == _MSC_FULL_VER / 10000
-    #define ASMJIT_CXX_MSC ASMJIT_CXX_MAKE_VER(_MSC_VER / 100, _MSC_VER % 100, _MSC_FULL_VER % 10000)
-  #else
-    #define ASMJIT_CXX_MSC ASMJIT_CXX_MAKE_VER(_MSC_VER / 100, (_MSC_FULL_VER / 100000) % 100, _MSC_FULL_VER % 100000)
-  #endif
-
 // Clang Compiler [Pretends to be GNU, so it must be checked before]:
 //   - https://clang.llvm.org/cxx_status.html
 #elif defined(__clang_major__) && defined(__clang_minor__) && defined(__clang_patchlevel__)
-
-  #undef ASMJIT_CXX_CLANG
-  #define ASMJIT_CXX_CLANG ASMJIT_CXX_MAKE_VER(__clang_major__, __clang_minor__, __clang_patchlevel__)
 
 // GNU Compiler:
 //   - https://gcc.gnu.org/projects/cxx-status.html
 #elif defined(__GNUC__) && defined(__GNUC_MINOR__) && defined(__GNUC_PATCHLEVEL__)
 
   #undef ASMJIT_CXX_GNU
-  #define ASMJIT_CXX_GNU ASMJIT_CXX_MAKE_VER(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__)
+  #define ASMJIT_CXX_GNU ASMJIT_CXX_MAKE_VER(__GNUC__, __GNUC_MINOR__)
 
 #endif
 
 // Compiler features detection macros.
-#if ASMJIT_CXX_CLANG && defined(__has_builtin)
-  #define ASMJIT_CXX_HAS_BUILTIN(NAME, CHECK) (__has_builtin(NAME))
-#else
-  #define ASMJIT_CXX_HAS_BUILTIN(NAME, CHECK) (!(!(CHECK)))
-#endif
-
-#if ASMJIT_CXX_CLANG && defined(__has_extension)
-  #define ASMJIT_CXX_HAS_FEATURE(NAME, CHECK) (__has_extension(NAME))
-#elif ASMJIT_CXX_CLANG && defined(__has_feature)
-  #define ASMJIT_CXX_HAS_FEATURE(NAME, CHECK) (__has_feature(NAME))
-#else
-  #define ASMJIT_CXX_HAS_FEATURE(NAME, CHECK) (!(!(CHECK)))
-#endif
-
-#if ASMJIT_CXX_CLANG && defined(__has_attribute)
+#if defined(__clang__) && defined(__has_attribute)
   #define ASMJIT_CXX_HAS_ATTRIBUTE(NAME, CHECK) (__has_attribute(NAME))
 #else
   #define ASMJIT_CXX_HAS_ATTRIBUTE(NAME, CHECK) (!(!(CHECK)))
-#endif
-
-#if ASMJIT_CXX_CLANG && defined(__has_cpp_attribute)
-  #define ASMJIT_CXX_HAS_CPP_ATTRIBUTE(NAME, CHECK) (__has_cpp_attribute(NAME))
-#else
-  #define ASMJIT_CXX_HAS_CPP_ATTRIBUTE(NAME, CHECK) (!(!(CHECK)))
 #endif
 
 // ============================================================================
@@ -387,13 +352,22 @@
   #define ASMJIT_ALIGN_TYPE(TYPE, N) TYPE
 #endif
 
+//! \def ASMJIT_MAY_ALIAS
+//!
+//! Expands to `__attribute__((__may_alias__))` if supported.
 #if defined(__GNUC__)
   #define ASMJIT_MAY_ALIAS __attribute__((__may_alias__))
 #else
   #define ASMJIT_MAY_ALIAS
 #endif
 
-// Annotations.
+//! \def ASMJIT_LIKELY(...)
+//!
+//! Condition is likely to be taken (mostly error handling and edge cases).
+
+//! \def ASMJIT_UNLIKELY(...)
+//!
+//! Condition is unlikely to be taken (mostly error handling and edge cases).
 #if defined(__GNUC__)
   #define ASMJIT_LIKELY(...) __builtin_expect(!!(__VA_ARGS__), 1)
   #define ASMJIT_UNLIKELY(...) __builtin_expect(!!(__VA_ARGS__), 0)
@@ -402,20 +376,33 @@
   #define ASMJIT_UNLIKELY(...) (__VA_ARGS__)
 #endif
 
+//! \def ASMJIT_FALLTHROUGH
+//!
+//! Portable [[fallthrough]] attribute.
 #if defined(__clang__) && __cplusplus >= 201103L
   #define ASMJIT_FALLTHROUGH [[clang::fallthrough]]
-#elif ASMJIT_CXX_GNU >= ASMJIT_CXX_MAKE_VER(7, 0, 0)
+#elif defined(__GNUC__) && __GNUC__ >= 7
   #define ASMJIT_FALLTHROUGH __attribute__((__fallthrough__))
 #else
   #define ASMJIT_FALLTHROUGH ((void)0) /* fallthrough */
 #endif
 
+//! \def ASMJIT_DEPRECATED
+//!
+//! Marks function, class, struct, enum, or anything else as deprecated.
 #if defined(__GNUC__)
   #define ASMJIT_DEPRECATED(MESSAGE) __attribute__((__deprecated__(MESSAGE)))
-#elif ASMJIT_MSC
+  #if defined(__clang__)
+    #define ASMJIT_DEPRECATED_STRUCT(MESSAGE) __attribute__((__deprecated__(MESSAGE)))
+  #else
+    #define ASMJIT_DEPRECATED_STRUCT(MESSAGE) /* not usable if a deprecated function uses it */
+  #endif
+#elif defined(_MSC_VER)
   #define ASMJIT_DEPRECATED(MESSAGE) __declspec(deprecated(MESSAGE))
+  #define ASMJIT_DEPRECATED_STRUCT(MESSAGE) /* not usable if a deprecated function uses it */
 #else
   #define ASMJIT_DEPRECATED(MESSAGE)
+  #define ASMJIT_DEPRECATED_STRUCT(MESSAGE)
 #endif
 
 // Utilities.
@@ -424,7 +411,7 @@
 
 #if ASMJIT_CXX_HAS_ATTRIBUTE(no_sanitize, 0)
   #define ASMJIT_ATTRIBUTE_NO_SANITIZE_UNDEF __attribute__((__no_sanitize__("undefined")))
-#elif ASMJIT_CXX_GNU >= ASMJIT_CXX_MAKE_VER(4, 9, 0)
+#elif ASMJIT_CXX_GNU >= ASMJIT_CXX_MAKE_VER(4, 9)
   #define ASMJIT_ATTRIBUTE_NO_SANITIZE_UNDEF __attribute__((__no_sanitize_undefined__))
 #else
   #define ASMJIT_ATTRIBUTE_NO_SANITIZE_UNDEF
@@ -443,8 +430,7 @@
   #define ASMJIT_END_NAMESPACE                                                \
       _Pragma("clang diagnostic pop")                                         \
     }
-#elif ASMJIT_CXX_GNU >= ASMJIT_CXX_MAKE_VER(4, 0, 0) && \
-      ASMJIT_CXX_GNU <  ASMJIT_CXX_MAKE_VER(5, 0, 0)
+#elif defined(__GNUC__) && __GNUC__ == 4
   #define ASMJIT_BEGIN_NAMESPACE                                              \
     namespace asmjit {                                                        \
       _Pragma("GCC diagnostic push")                                          \
@@ -452,7 +438,7 @@
   #define ASMJIT_END_NAMESPACE                                                \
       _Pragma("GCC diagnostic pop")                                           \
     }
-#elif ASMJIT_CXX_GNU >= ASMJIT_CXX_MAKE_VER(8, 0, 0)
+#elif defined(__GNUC__) && __GNUC__ >= 8
   #define ASMJIT_BEGIN_NAMESPACE                                              \
     namespace asmjit {                                                        \
       _Pragma("GCC diagnostic push")                                          \
@@ -506,10 +492,7 @@
 // ============================================================================
 
 // Cleanup definitions that are only used within this header file.
-#undef ASMJIT_CXX_CLANG
 #undef ASMJIT_CXX_GNU
-#undef ASMJIT_CXX_INTEL
-#undef ASMJIT_CXX_MSC
 #undef ASMJIT_CXX_MAKE_VER
 
 #endif // ASMJIT_CORE_API_CONFIG_H_INCLUDED

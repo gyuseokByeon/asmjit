@@ -370,14 +370,14 @@ public:
 
   //! \}
 
-  //! \cond DEPRECATED
+#ifndef ASMJIT_NO_DEPRECATED
 #ifndef ASMJIT_NO_LOGGING
-  ASMJIT_API Error ASMJIT_DEPRECATED("Use Formatter::formatNodeList(sb, formatFlags, builder)")
-                   dump(String& sb, uint32_t formatFlags = 0) const noexcept {
+  ASMJIT_DEPRECATED("Use Formatter::formatNodeList(sb, formatFlags, builder)")
+  ASMJIT_API Error dump(String& sb, uint32_t formatFlags = 0) const noexcept {
     return Formatter::formatNodeList(sb, formatFlags, this);
   }
-#endif
-  //! \endcond
+#endif // !ASMJIT_NO_LOGGING
+#endif // !ASMJIT_NO_DEPRECATED
 };
 
 // ============================================================================
@@ -527,9 +527,9 @@ public:
     //! First id of a user-defined node.
     kNodeUser = 32,
 
-    //! \cond DEPRECATED
+#ifndef ASMJIT_NO_DEPRECATED
     kNodeFuncCall = kNodeInvoke
-    //! \endcond
+#endif // !ASMJIT_NO_DEPRECATED
   };
 
   //! Node flags, specify what the node is and/or does.
@@ -626,10 +626,10 @@ public:
   //! Tests whether this node is `InvokeNode`.
   inline bool isInvoke() const noexcept { return type() == kNodeInvoke; }
 
-  //! \cond DEPRECATED
-  inline ASMJIT_DEPRECATED("Use isInvoke")
-         bool isFuncCall() const noexcept { return isInvoke(); }
-  //! \endcond
+#ifndef ASMJIT_NO_DEPRECATED
+  ASMJIT_DEPRECATED("Use isInvoke")
+  inline bool isFuncCall() const noexcept { return isInvoke(); }
+#endif // !ASMJIT_NO_DEPRECATED
 
   //! Returns the node flags, see \ref Flags.
   inline uint32_t flags() const noexcept { return _any._nodeFlags; }

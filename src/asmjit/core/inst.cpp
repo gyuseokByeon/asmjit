@@ -97,7 +97,7 @@ Error InstAPI::validate(uint32_t archId, const BaseInst& inst, const Operand_* o
 
 #ifndef ASMJIT_NO_INTROSPECTION
 Error InstAPI::queryRWInfo(uint32_t archId, const BaseInst& inst, const Operand_* operands, size_t opCount, InstRWInfo* out) noexcept {
-  if (ASMJIT_UNLIKELY(opCount > 6))
+  if (ASMJIT_UNLIKELY(opCount > Globals::kMaxOpCount))
     return DebugUtils::errored(kErrorInvalidArgument);
 
 #ifdef ASMJIT_BUILD_X86

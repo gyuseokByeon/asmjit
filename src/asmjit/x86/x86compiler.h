@@ -619,17 +619,16 @@ public:
   //! Put a DP-FP `val` to a constant-pool.
   inline Mem newDoubleConst(uint32_t scope, double val) noexcept { return newConst(scope, &val, 8); }
 
-  //! \cond DEPRECATED
-  //! Put a MMX `val` to a constant-pool.
-  inline Mem ASMJIT_DEPRECATED("newMmConst() uses a deprecated Data64, use newConst() with your own data instead")
-             newMmConst(uint32_t scope, const Data64& val) noexcept { return newConst(scope, &val, 8); }
-  //! Put a XMM `val` to a constant-pool.
-  inline Mem ASMJIT_DEPRECATED("newXmmConst() uses a deprecated Data128, use newConst() with your own data instead")
-             newXmmConst(uint32_t scope, const Data128& val) noexcept { return newConst(scope, &val, 16); }
-  //! Put a YMM `val` to a constant-pool.
-  inline Mem ASMJIT_DEPRECATED("newYmmConst() uses a deprecated Data256, use newConst() with your own data instead")
-             newYmmConst(uint32_t scope, const Data256& val) noexcept { return newConst(scope, &val, 32); }
-  //! \endcond
+#ifndef ASMJIT_NO_DEPRECATED
+  ASMJIT_DEPRECATED("newMmConst() uses a deprecated Data64, use newConst() with your own data instead")
+  inline Mem newMmConst(uint32_t scope, const Data64& val) noexcept { return newConst(scope, &val, 8); }
+
+  ASMJIT_DEPRECATED("newXmmConst() uses a deprecated Data128, use newConst() with your own data instead")
+  inline Mem newXmmConst(uint32_t scope, const Data128& val) noexcept { return newConst(scope, &val, 16); }
+
+  ASMJIT_DEPRECATED("newYmmConst() uses a deprecated Data256, use newConst() with your own data instead")
+  inline Mem newYmmConst(uint32_t scope, const Data256& val) noexcept { return newConst(scope, &val, 32); }
+#endif // !ASMJIT_NO_DEPRECATED
 
   //! \}
 

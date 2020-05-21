@@ -64,6 +64,15 @@ matrix:
           - sourceline: "ppa:ubuntu-toolchain-r/test"
           packages: [clang++-9]
 
+    - name: "Linux Clang Default [64-bit] [REL] [NoDeprecated]"
+      env: BUILD_MATRIX="BUILD_TYPE=Release && CC=clang-9 && CXX=clang++-9" EXTRA_OPTIONS="-DASMJIT_NO_DEPRECATED=1"
+      os: linux
+      addons:
+        apt:
+          sources:
+          - sourceline: "ppa:ubuntu-toolchain-r/test"
+          packages: [clang++-9]
+
     - name: "Linux Clang Default [64-bit] [REL] [NoBuilder]"
       env: BUILD_MATRIX="BUILD_TYPE=Release && CC=clang-9 && CXX=clang++-9" EXTRA_OPTIONS="-DASMJIT_NO_BUILDER=1"
       os: linux

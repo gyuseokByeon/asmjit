@@ -248,6 +248,15 @@ public:
   //! Tests whether the BaseEmitter is initialized (i.e. attached to the `CodeHolder`).
   inline bool isInitialized() const noexcept { return _code != nullptr; }
 
+  //! Finalizes this emitter.
+  //!
+  //! Materializes the content of the emitter by serializing it to the attached
+  //! \ref CodeHolder through an architecture specific \ref BaseAssembler. This
+  //! function won't do anything if the emitter inherits from \ref BaseAssembler
+  //! as assemblers emit directly to a \ref CodeBuffer held by \ref CodeHolder.
+  //! However, if this is an emitter that inherits from \ref BaseBuilder or \ref
+  //! BaseCompiler then these emitters need the materialization phase as they
+  //! store their content in a representation not visible to \ref CodeHolder.
   ASMJIT_API virtual Error finalize();
 
   //! \}
