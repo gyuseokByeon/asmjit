@@ -159,18 +159,15 @@ int main() {
   typedef size_t (*Func)(size_t idx);
   Func fn = (Func)roPtr;
 
-  printf("\nTesting the generated function:\n");
+  printf("\n");
   if (fn(0) != dataArray[0] ||
       fn(3) != dataArray[3] ||
       fn(6) != dataArray[6] ||
       fn(9) != dataArray[9] ) {
-    printf("  [FAILED] The generated function returned incorrect result(s)\n");
+    printf("Failure:\n  The generated function returned incorrect result(s)\n");
     return 1;
   }
-  else {
-    printf("  [PASSED] The generated function returned expected results\n");
-  }
 
-  allocator.release((void*)fn);
+  printf("Success:\n  The generated function returned expected results\n");
   return 0;
 }

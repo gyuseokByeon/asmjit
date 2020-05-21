@@ -101,6 +101,7 @@ static void makeCompiledFunc(x86::Compiler* cc) noexcept {
 static uint32_t testFunc(JitRuntime& rt, uint32_t emitterType) noexcept {
 #ifndef ASMJIT_NO_LOGGING
   FileLogger logger(stdout);
+  logger.setIndentation(FormatOptions::kIndentationCode, 2);
 #endif
 
   CodeHolder code;
@@ -173,8 +174,10 @@ static uint32_t testFunc(JitRuntime& rt, uint32_t emitterType) noexcept {
 }
 
 int main() {
-  unsigned nFailed = 0;
+  printf("AsmJit X86 Emitter Test\n\n");
+
   JitRuntime rt;
+  unsigned nFailed = 0;
 
   nFailed += testFunc(rt, BaseEmitter::kTypeAssembler);
 
@@ -187,9 +190,9 @@ int main() {
 #endif
 
   if (!nFailed)
-    printf("[PASSED] All tests passed\n");
+    printf("Success:\n  All tests passed\n\n");
   else
-    printf("[FAILED] %u %s failed\n", nFailed, nFailed == 1 ? "test" : "tests");
+    printf("Failure:\n  %u %s failed\n\n", nFailed, nFailed == 1 ? "test" : "tests");
 
   return nFailed ? 1 : 0;
 }

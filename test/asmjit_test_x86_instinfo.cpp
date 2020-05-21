@@ -79,6 +79,8 @@ int main() {
   using namespace x86;
   uint32_t archId = ArchInfo::kIdX64;
 
+  printf("AsmJit X86 Instruction Information Test\n\n");
+
   printInfoSimple(archId,
                   x86::Inst::kIdAdd,
                   x86::eax, x86::ebx);

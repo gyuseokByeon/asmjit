@@ -15,6 +15,9 @@ matrix:
     - name: "Source Code Check"
       env: BUILD_MATRIX="SOURCE_CODE_CHECK=1"
       os: linux
+      language: node_js
+      node_js:
+        - node
 
     - name: "Linux Clang Default [64-bit] [DBG]"
       env: BUILD_MATRIX="BUILD_TYPE=Debug && CC=clang-9 && CXX=clang++-9"
@@ -294,6 +297,9 @@ script:
       else
         cmake --build .
       fi
+      echo ""
+      echo "=== Starting Tests ==="
+      echo ""
       if [ "$USE_VALGRIND" = "1" ]; then
         RUN_CMD="valgrind --leak-check=full --show-reachable=yes --track-origins=yes"
       fi
@@ -308,5 +314,7 @@ script:
         eval "$RUN_CMD ./asmjit_test_x86_cc"
       fi
     else
-      ./tools/enumgen.sh --verify
+      cd tools
+      ./enumgen.sh --verify
+      cd ..
     fi

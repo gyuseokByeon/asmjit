@@ -261,11 +261,12 @@ int X86TestApp::run() {
   }
 
   if (_nFailed == 0)
-    printf("\n[PASSED] All %u tests passed\n", unsigned(_tests.size()));
+    printf("\nSuccess:\n  All %u tests passed\n", unsigned(_tests.size()));
   else
-    printf("\n[FAILED] %u %s of %u failed\n", _nFailed, _nFailed == 1 ? "test" : "tests", unsigned(_tests.size()));
+    printf("\nFailure:\n  %u %s of %u failed\n", _nFailed, _nFailed == 1 ? "test" : "tests", unsigned(_tests.size()));
 
   printf("  OutputSize=%zu\n", _outputSize);
+  printf("\n");
 
   return _nFailed == 0 ? 0 : 1;
 }

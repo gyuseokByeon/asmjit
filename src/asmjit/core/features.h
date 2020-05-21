@@ -100,14 +100,14 @@ public:
   //! Returns all features as \ref BitWord array (const).
   inline const BitWord* bits() const noexcept { return _bits; }
 
+  //! Returns the number of BitWords returned by \ref bits().
+  inline size_t bitWordCount() const noexcept { return kNumBitWords; }
+
   //! Returns \ref Support::BitVectorIterator, that can be used to iterate
   //! all features efficiently
   inline Iterator iterator() const noexcept {
     return Iterator(_bits, kNumBitWords);
   }
-
-  //! Returns the number of BitWords returned by \ref bits().
-  inline size_t bitWordCount() const noexcept { return kNumBitWords; }
 
   //! Tests whether the feature `featureId` is present.
   inline bool has(uint32_t featureId) const noexcept {
